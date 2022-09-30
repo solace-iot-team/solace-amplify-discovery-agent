@@ -42,6 +42,19 @@ Create Amplify Service Account
   `Client ID` is created by Amplify while adding a service account.
 
 
+Amplify Teams
++++++++++++++++++++++++++
+
+Solace-Amplify-Discovery-Agent will provision Amplify AsyncAPI services in the name of an Amplify Team. The team-ids must be configured in Solace Platform and a default Amplify Team Name must be provided in Solace-Amplify-Discovery-Agent in case a team-id could not get mapped.
+* Sign in to the `Amplify Platform <https://platform.axway.com>`_.
+
+* Click on the `User & Org` menu and select `Organization`.
+
+* Click the `Teams` tab from the left navigation.
+
+* Note Team-Ids and Team-Names to configure them in Solace Platform and Solace-Amplify-Discovery-Agent
+
+
 Solace Environment
 ------------------
 

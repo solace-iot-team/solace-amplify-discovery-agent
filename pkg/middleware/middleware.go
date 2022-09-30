@@ -59,7 +59,6 @@ func NewMiddleware(connectorConfig *config.ConnectorConfig) (*ConnectorMiddlewar
 		ConnectorLogBody:                  connectorConfig.ConnectorLogBody,
 		ConnectorLogHeader:                connectorConfig.ConnectorLogHeader,
 		ConnectorTimeout:                  timeout,
-		ConnectorDefaultBusinessGroupId:   connectorConfig.DefaultBusinessGroupId,
 		ConnectorDefaultBusinessGroupName: connectorConfig.DefaultBusinessGroupName,
 		AgentBusinesssGroupId:             connectorConfig.AgentBusinessGroupId,
 		ConnectorPublishDestination:       connectorConfig.ConnectorPublishDestination,
@@ -441,18 +440,6 @@ func (a *ConnectorMiddleware) ProvisionApis() error {
 	return nil
 }
 
-func (a *ConnectorMiddleware) DefaultBusinessGroupId() string {
-	return a.ConnectorConfig.ConnectorDefaultBusinessGroupId
-}
-
-func (a *ConnectorMiddleware) DefaulAxTeamName() (string, error) {
-	platformTeam := agent.GetTeamByID(a.ConnectorConfig.ConnectorDefaultBusinessGroupId)
-	if platformTeam == nil {
-		return "", fmt.Errorf("can not retrieve team-name for teamid:%s", a.ConnectorConfig.ConnectorDefaultBusinessGroupId)
-	}
-	return platformTeam.Name, nil
-}
-
 func (a *ConnectorMiddleware) publishUpdatedApiProduct(apiProduct *connector.APIProduct) (bool, error) {
 
 	container, err := a.OrgConnector.RetrieveApiProductContainer(a.DefaultOrgName, apiProduct.Name)
@@ -587,28 +574,20 @@ func (a *ConnectorMiddleware) buildServiceBodyFromApiProduct(apiEnvs []*connecto
 	credentialRequestDefs := []string{"solace-credentials-request"}
 	externalApiId := MapToExternalApiId(string(apiProduct.Name))
 	axwayApiTitle := MapToNormalizedAxApiName(apiProduct.Name, apiProduct.DisplayName)
-	conOwningBusinessGroupId := a.DefaultBusinessGroupId()
+	owningTeamName := ""
 	for _, candidate := range apiProduct.Attributes {
 		if candidate.Name == connector.ATTRIBUTE_OWNING_BUSINESS_GROUP_ID {
-			conOwningBusinessGroupId = candidate.Value
+			platformTeam := agent.GetTeamByID(candidate.Value)
+			if platformTeam == nil {
+				//fallback to default
+				log.Warnf("ConnectorMiddleware could not map conOwningBusinessGroupId (%s) to a platformTeam. Fallback to configured connectorDefaultBusinessGroupId", candidate.Value)
+				owningTeamName = a.ConnectorConfig.ConnectorDefaultBusinessGroupName
+			} else {
+				owningTeamName = platformTeam.Name
+			}
 			break
 		}
 	}
-	owningTeamName := ""
-	platformTeam := agent.GetTeamByID(conOwningBusinessGroupId)
-	if platformTeam == nil {
-
-		if conOwningBusinessGroupId == a.ConnectorConfig.ConnectorDefaultBusinessGroupId {
-			//fallback to default
-			log.Warnf("ConnectorMiddleware could not map conOwningBusinessGroupId (%s) to a platformTeam. Fallback to configured connectorDefaultBusinessGroupId", conOwningBusinessGroupId)
-			owningTeamName = a.ConnectorConfig.ConnectorDefaultBusinessGroupName
-		} else {
-			return nil, fmt.Errorf("can not retrieve team-name for teamid:%s (businessGroupId)", conOwningBusinessGroupId)
-		}
-	} else {
-		owningTeamName = platformTeam.Name
-	}
-
 	//webhooks
 	accesssRequestDefinitionName := ""
 	if CheckWebhookEligible(apiProduct) {

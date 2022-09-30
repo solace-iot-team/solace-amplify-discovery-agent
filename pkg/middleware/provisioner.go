@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/Axway/agent-sdk/pkg/agent"
 	"github.com/Axway/agent-sdk/pkg/apic/provisioning"
 	"github.com/Axway/agent-sdk/pkg/util/log"
 	"github.com/solace-iot-team/solace-amplify-discovery-agent/pkg/config"
@@ -22,17 +21,12 @@ type ConnectorProvisioner struct {
 }
 
 func NewConnectorProvisioner(connectorConfig *config.ConnectorConfig) (*ConnectorProvisioner, error) {
-	team := agent.GetTeamByID(connectorConfig.DefaultBusinessGroupId)
-	if team == nil {
-		return nil, fmt.Errorf("could not retrieve team-name from Axway based on connector.defaultBusinessGroupId %s", connectorConfig.DefaultBusinessGroupId)
-	}
 	return &ConnectorProvisioner{
 		AdminConnector: connector.GetAdminConnector(),
 		OrgConnector:   connector.GetOrgConnector(),
 		DefaultOrgName: connectorConfig.ConnectorOrgMapping,
 		//todo externalize
-		DefaultTeamId:        connectorConfig.DefaultBusinessGroupId,
-		DefaultTeamName:      team.Name,
+		DefaultTeamName:      connectorConfig.DefaultBusinessGroupName,
 		AgentBusinessGroupId: connectorConfig.AgentBusinessGroupId,
 		ConnectorConfig:      connectorConfig,
 	}, nil

@@ -1,6 +1,6 @@
 
 Solace Amplify Agent for Async API Management
-===========================================
+=============================================
 
 
 .. toctree::

@@ -71,7 +71,6 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 		ConnectorLogHeader:          rootProps.BoolPropertyValue("connector.logHeader"),
 		ConnectorOrgMapping:         rootProps.StringPropertyValue("connector.orgMapping"),
 		ConnectorPublishDestination: rootProps.StringPropertyValue("connector.publishDestination"),
-		DefaultBusinessGroupId:      rootProps.StringPropertyValue("connector.defaultBusinessGroupId"),
 		DefaultBusinessGroupName:    rootProps.StringPropertyValue("connector.defaultBusinessGroupName"),
 		AgentBusinessGroupId:        rootProps.StringPropertyValue("connector.agentBusinessGroupId"),
 		ConnectorTimeout:            rootProps.StringPropertyValue("connector.timeout"),
@@ -80,7 +79,6 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 	log.Infof("Connector-Config: [URL:%s] [OrgMapping:%s] [DefaultBusinessGroupId:%s] [DefaultBusinessGroupName:%s] [AgentBusinessGroupId:%s] [TraceLevel:%d]",
 		connectorConfig.ConnectorURL,
 		connectorConfig.ConnectorOrgMapping,
-		connectorConfig.DefaultBusinessGroupId,
 		connectorConfig.DefaultBusinessGroupName,
 		connectorConfig.AgentBusinessGroupId,
 		connectorConfig.ConnectorTraceLevel)

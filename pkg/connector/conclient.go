@@ -50,7 +50,6 @@ type ConnectorConfig struct {
 	ConnectorLogBody                  bool
 	ConnectorLogHeader                bool
 	ConnectorTimeout                  time.Duration
-	ConnectorDefaultBusinessGroupId   string
 	ConnectorDefaultBusinessGroupName string
 	AgentBusinesssGroupId             string
 	AgentBusinessGroupName            string

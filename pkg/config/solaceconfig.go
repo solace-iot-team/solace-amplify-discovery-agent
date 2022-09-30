@@ -45,7 +45,6 @@ type ConnectorConfig struct {
 	ConnectorLogHeader          bool   `config:"logHeader"`
 	ConnectorOrgMapping         string `config:"orgMapping"`
 	ConnectorPublishDestination string `config:"publishDestination"`
-	DefaultBusinessGroupId      string `config:"defaultBusinessGroupId"`
 	DefaultBusinessGroupName    string `config:"defaultBusinessGroupName"`
 	AgentBusinessGroupId        string `config:"agentBusinessGroupId"`
 	ConnectorTimeout            string `config:"timeout"`

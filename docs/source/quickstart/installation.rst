@@ -8,7 +8,7 @@ Releases of the agent are published to Docker Hub and are located at `solaceiott
 
 
 Configuration of `solace-amplify-discovery-agent` Docker container
-++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 The agent is getting configured by providing environment variables.
 
