@@ -1,0 +1,82 @@
+# SAMPLE of configuration options
+log:
+  level: trace
+# optional - directory containing SSL/TLS public certificates of endpoints this agent is establishing connections to
+ssl_cert_dir: "/path/to/directory"
+# Configuration options offered by Axway Agent SDK
+central:
+  grpc:
+    # Enable/disable grpc callback channel as alternative to polling (see pollInterval)
+    enabled: 'false'
+  # Pollinterval agent is polling Axway Central (min 30 seconds)
+  pollInterval: 30s
+  # Axway Central API Endpoint
+  url: https://central.eu-fr.axway.com
+  # Proxy for Axway Central Endpoint
+  # proxyUrl: https://abc:123
+
+  # Axway Central Organization ID
+  organizationID: 12345
+  # Axway Central Environment
+  environment: abc-efg-1
+  auth:
+    # Axway Central Service Account
+    clientID: DOSA_abc123
+    # Path and Filename of Axway Central Service Account private key as PEM
+    privateKey: "/path/to/private_key.pem"
+      # Optional - PEM content as one line PEM
+      #            will be written as PEM in central.auth.privateKey file defined in here
+      #            can get used to bootstrap and share PEM via environment variable
+      # use awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' cert-name.pem  to transform PEM file
+      # data: "-----BEGIN PRIVATE KEY----- ..."
+    # Path and Filename of Axway Central Service Account public key as PEM
+    publicKey: "/path/to/public_key.pem"
+      # Optional - PEM content as one line PEM
+      #            will be written as PEM in central.auth.publicKey file defined in here
+      #            can get used to bootstrap and share PEM via environment variable
+      # use awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' cert-name.pem  to transform PEM file
+      # data: "-----BEGIN PUBLIC KEY----- ..."
+
+# Solace Connector specific configurations
+connector:
+  # Solace Connector endpoint
+  url: http://url:port/path
+
+  # Proxy for Solace Connector endpoint
+  # proxyUrl: http://abc:123
+
+  # Optional name of Connector Org instead of default convention AXWAY-ENVIRONMENT-NAME = CONNECTOR-ORG_NAME
+  # If variable is not defined, fallback to default convention
+  # orgMapping: some-connector-org-name
+
+  # Solace Connector admin user
+  adminUser: admin
+  # Solace Connector admin password
+  adminPassword: secret
+  # Solace Connector organization user
+  orgUser: user
+  # Solace Connector organization user password
+  orgPassword: secret
+  # Enable / disable TLS certificate validation of connector endpoint
+  #   provide (root)-certificate of endpoint in ssl_cert_dir to enable it
+  acceptinsecurecertificates: false
+  # Enable/ disable logging of HTTP-REST requests sent to Solace-Connector
+  #   sensitive information will be written to the log (e.g. usernames and passwords of AsyncAPI subscriptions)
+  #   only for debugging and development
+  logBody: false
+  # Enable / disable logging of HTTP Headers sent to Solace-Connector
+  #   sensitive information will be written to the log (username / password used to authenticate against Solace-Connector)
+  #   only for debugging and development
+  logHeader: false
+  # fine grained configuration of trace logs (log level = trace)
+  # 0 = fine, 1 = finer, 2 = finest
+  traceLevel: 0
+  # timeout for http-client against solace-connector rest endpoint
+  # there are time consuming operations like provisioning of webhooks etc.
+  timeout: 60s
+  # fallback if business-group-id of solace-client can not get mapped against axway-team-id
+  defaultBusinessGroupId: aaa-bbb-ccc
+  # fallback if business-group-id of solace-client can not get mapped against axway-team-id
+  defaultBusinessGroupName: api-team
+  # all applications will be assigned this businessGroupId in solace-connector
+  agentBusinessGroupId: 0dd65634-b1c6-45d0-8f76-b2bc99d1d28a
