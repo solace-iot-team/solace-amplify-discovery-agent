@@ -80,3 +80,137 @@ The solace-amplify-discovery-agent Docker Container is described in this [Docker
             *  as solace-amplify-discovery-agent is not executed as ROOT the mount-path must be writeable for NON-ROOT user (uid=9999, gid=9999)
         * `CENTRAL_AUTH_PRIVATEKEY_DATA` and `CENTRAL_AUTH_PUBLIC_DATA` must contain key data as one-liner
             *  To convert PEM files into environment variable format use `awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' cert-name.pem` to transform it to a one-liner
+
+### Sample Configuration for Kubernetes Deployment
+
+ConfigMap definition for the Agent:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-config
+  namespace: some-namespace
+data:
+  LOG_LEVEL: trace
+  AGENTFEATURES_MARKETPLACEPROVISIONING: "true"
+  CENTRAL_POLLINTERVAL: 30s
+  CENTRAL_URL: "https://central.eu-fr.axway.com"
+  CENTRAL_ORGANIZATIONID: "123456789"
+  CENTRAL_ENVIRONMENT: "some-amplify-environment"
+  CENTRAL_AUTH_PRIVATEKEY:  "/secrets/agent/privatekey.pem"
+  CENTRAL_AUTH_PUBLICKEY: "/secrets/agent/publickey.pem"
+  CONNECTOR_URL: "http://1.1.1.1:3000/v1"
+  CONNECTOR_ORGMAPPING: "some-connector-org"
+  CONNECTOR_ACCEPTINSECURECERTIFICATES: "true" 
+  CONNECTOR_LOGBODY: "true"
+  CONNECTOR_LOGHEADER: "true"
+  CONNECTOR_DEFAULTBUSINESSGROUPNAME: "ACME-Retail-Providers"
+  CONNECTOR_AGENTBUSINESSGROUPID: "ACME-CONNECTOR-BG-ID"
+  CONNECTOR_PUBLISHDESTINATION: "some-connector-publish-destionation"
+  # 0=fine 1=finer 2=finest for LOG_LEVEL=trace
+  CONNECTOR_TRACELEVEL: "2"
+  CONNECTOR_TIMEOUT: "60s"
+
+```
+
+Secrets definition for the Agent:
+
+```yaml
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: agent-secret
+  namespace: some-namespace
+data:
+  secret.clientid: |
+    base64Encoded_amplify_service_account_client_id
+  secret.publickey: |
+    base64Encoded_amplify_service_account_publickey__including_newline_characters
+  secret.privatekey: |
+    base64Encoded_amplify_service_account_privatekey__including_newline_characters
+  secret.adminuser: base64Encoded_solace_connector_admin_user
+  secret.adminpassword: base64Encoded_solace_connector_admin_password
+  secret.orguser: base64Encoded_solace_connector_org_user
+  secret.orguserpassword: base64Encoded_solace_connector_org_password
+
+```
+
+Deployment definition for the Agent:
+
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-agent
+  namespace: some-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: app-agent
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: app-agent
+        version: latest    
+    spec:
+      containers:
+      - image: docker.io/solaceiotteam/solace-amplify-discovery-agent:latest
+        imagePullPolicy: Always
+        name: agent
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "250m"
+        ports:
+        - containerPort: 8989
+        # args: 
+        env:
+        - name: CENTRAL_AUTH_CLIENTID
+          valueFrom:
+            secretKeyRef:
+              name: agent-secret
+              key: secret.clientid
+        - name: CONNECTOR_ADMINUSER
+          valueFrom:
+            secretKeyRef:
+              name: agent-secret
+              key: secret.adminuser
+        - name: CONNECTOR_ADMINPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: agent-secret
+              key: secret.adminpassword
+        - name: CONNECTOR_ORGUSER
+          valueFrom:
+            secretKeyRef:
+              name: agent-secret
+              key: secret.orguser
+        - name: CONNECTOR_ORGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: agent-secret
+              key: secret.orguserpassword
+        envFrom:
+          - configMapRef:
+              name: agent-config
+        volumeMounts:
+        - name: inline-volume
+          mountPath: "/var/agent/certs"
+        - name: secret-files
+          mountPath: "/secrets/agent/publickey.pem"
+          subPath: secret.publickey
+        - name: secret-files
+          mountPath: "/secrets/agent/privatekey.pem"
+          subPath: secret.privatekey
+      volumes:
+        - name: inline-volume
+          emptyDir: {}
+        - name: secret-files
+          secret:
+            secretName: agent-secret
+```
