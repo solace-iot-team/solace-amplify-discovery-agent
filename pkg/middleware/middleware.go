@@ -212,6 +212,11 @@ func (a *ConnectorMiddleware) PublishSchemas() error {
 				SetDescription("Optional information about provisioned webhook").
 				IsString())).
 		AddProperty(provisioning.NewSchemaPropertyBuilder().
+			SetName("vpnName").
+			SetLabel("Solace-VPN").
+			SetDescription("Solace VPN Name").
+			IsString()).
+		AddProperty(provisioning.NewSchemaPropertyBuilder().
 			SetName("clientinformation").
 			SetLabel("Client Information").
 			SetDescription("Optional information about provisioned queues").

@@ -217,6 +217,7 @@ func (c *ConnectorProvisioner) AccessRequestProvision(request provisioning.Acces
 	subscribeChannelsList := make([]interface{}, 0)
 	clientInformationList := make([]interface{}, 0)
 	webhookInformationList := make([]interface{}, 0)
+	vpnName := ""
 
 	//by convention only one environment allowed
 	envs := *appResponse.Environments
@@ -261,6 +262,25 @@ func (c *ConnectorProvisioner) AccessRequestProvision(request provisioning.Acces
 			}
 		}
 	}
+	flagFoundVpn := false
+	if appResponse.Environments != nil {
+		for _, env := range *appResponse.Environments {
+			if env.MessagingProtocols != nil {
+				for _, endpoint := range *env.MessagingProtocols {
+					if endpoint.MsgVpn != nil {
+						vpnName = fmt.Sprint(*endpoint.MsgVpn)
+						flagFoundVpn = true
+					}
+					if flagFoundVpn {
+						continue
+					}
+				}
+			}
+			if flagFoundVpn {
+				continue
+			}
+		}
+	}
 
 	if webhook != nil {
 		if webhookCreated {
@@ -283,6 +303,7 @@ func (c *ConnectorProvisioner) AccessRequestProvision(request provisioning.Acces
 	accessDataRoot["subscribePermissions"] = subscribeChannelsList
 	accessDataRoot["clientinformation"] = clientInformationList
 	accessDataRoot["webhookinformation"] = webhookInformationList
+	accessDataRoot["vpnName"] = vpnName
 
 	accessData := provisioning.NewAccessDataBuilder().SetData(accessDataRoot)
 	c.LogTraceLevelFiner("[Provisioner] [AccessRequestProvision]  successfully provisioned ApplicationName: %s  Product-Id: %s", appName, externalApiId)
