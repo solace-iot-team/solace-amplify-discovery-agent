@@ -12,8 +12,6 @@
 
 * no bug fixes
 
-* no bug fixes
-* 
 ## Version 0.1.0
 
 ### Features
