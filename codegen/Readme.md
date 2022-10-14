@@ -2,8 +2,8 @@
 
 * adjust openapi.yaml of solace-connector api
   * remove health endpoint
-  * rename schemas/Organization to schemas/OrganizationResponse
-  * replace references to #/schema/Organization with #/schema/OrganizationResponse
+  * rename schemas/Organization to schemas/OrganizationRepresentation
+  * replace references to "#/components/schemas/Organization" with #/components/schemas/OrganizationRepresentation
 * `./oapi-codegen --config config.yml connector.yaml > connector.gen.go`
 * adjust generated client
   * fix `Permissions` to:
@@ -23,3 +23,4 @@ type Permissions struct {
   }
 }
 ```
+* Codgenerator https://github.com/deepmap/oapi-codegen

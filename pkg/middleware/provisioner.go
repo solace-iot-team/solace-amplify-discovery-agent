@@ -217,6 +217,7 @@ func (c *ConnectorProvisioner) AccessRequestProvision(request provisioning.Acces
 	subscribeChannelsList := make([]interface{}, 0)
 	clientInformationList := make([]interface{}, 0)
 	webhookInformationList := make([]interface{}, 0)
+	vpnName := ""
 
 	//by convention only one environment allowed
 	envs := *appResponse.Environments
@@ -261,6 +262,25 @@ func (c *ConnectorProvisioner) AccessRequestProvision(request provisioning.Acces
 			}
 		}
 	}
+	flagFoundVpn := false
+	if appResponse.Environments != nil {
+		for _, env := range *appResponse.Environments {
+			if env.MessagingProtocols != nil {
+				for _, endpoint := range *env.MessagingProtocols {
+					if endpoint.MsgVpn != nil {
+						vpnName = fmt.Sprint(*endpoint.MsgVpn)
+						flagFoundVpn = true
+					}
+					if flagFoundVpn {
+						continue
+					}
+				}
+			}
+			if flagFoundVpn {
+				continue
+			}
+		}
+	}
 
 	if webhook != nil {
 		if webhookCreated {
@@ -283,6 +303,7 @@ func (c *ConnectorProvisioner) AccessRequestProvision(request provisioning.Acces
 	accessDataRoot["subscribePermissions"] = subscribeChannelsList
 	accessDataRoot["clientinformation"] = clientInformationList
 	accessDataRoot["webhookinformation"] = webhookInformationList
+	accessDataRoot["vpnName"] = vpnName
 
 	accessData := provisioning.NewAccessDataBuilder().SetData(accessDataRoot)
 	c.LogTraceLevelFiner("[Provisioner] [AccessRequestProvision]  successfully provisioned ApplicationName: %s  Product-Id: %s", appName, externalApiId)
@@ -309,9 +330,11 @@ func (c *ConnectorProvisioner) AccessRequestDeprovision(request provisioning.Acc
 func (c *ConnectorProvisioner) CredentialProvision(request provisioning.CredentialRequest) (provisioning.RequestStatus, provisioning.Credential) {
 	c.LogTraceLevelFine("[Provisioner] [CredentialProvision]  ApplicationName: %s", request.GetApplicationName())
 	appName := request.GetApplicationName()
+	credId := request.GetID()
+
 	teamName := c.AgentBusinessGroupId
 	//creating a new secret - can not distinguish between the very first CredentialProvision call triggered during first subscription and triggering of creating new credentials
-	username, password, err := c.OrgConnector.CreateNewSecret(c.DefaultOrgName, teamName, appName)
+	username, password, err := c.OrgConnector.CreateNewSecret(c.DefaultOrgName, teamName, appName, credId)
 	if err != nil {
 		log.Errorf("[Provisioner] [CredentialProvision] GetAppCredentials TeamName:%s ApplicationName:%s %w", teamName, appName, err)
 		credentialDataContent := make(map[string]interface{})
@@ -329,6 +352,13 @@ func (c *ConnectorProvisioner) CredentialProvision(request provisioning.Credenti
 
 func (c *ConnectorProvisioner) CredentialDeprovision(request provisioning.CredentialRequest) provisioning.RequestStatus {
 	c.LogTraceLevelFine("[Provisioner] [CredentialDeprovision]  ApplicationName: %s", request.GetApplicationName())
+	appName := request.GetApplicationName()
+	teamName := c.AgentBusinessGroupId
+	credId := request.GetID()
+	err := c.OrgConnector.DeleteAndCleanAppCredentials(c.DefaultOrgName, teamName, appName, &credId)
+	if err != nil {
+		log.Errorf("CredentialProvision [CredentialDeprovision] failed to remove credentials %w", err)
+		return provisioning.NewRequestStatusBuilder().SetMessage("failed to remove credentials").Failed()
+	}
 	return provisioning.NewRequestStatusBuilder().SetMessage("ok").Success()
-	//TODO implement deprovisioning of credentials
 }

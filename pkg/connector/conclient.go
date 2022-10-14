@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	hc "github.com/Axway/agent-sdk/pkg/util/healthcheck"
 	"github.com/deepmap/oapi-codegen/pkg/securityprovider"
@@ -714,7 +715,10 @@ func (c *Access) DeleteApp(orgName string, teamName string, appName string) erro
 func (c *Access) CreateEmptyApp(orgName string, teamName string, appName string, attributes *Attributes) (*Credentials, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), connectorTimeout)
 	defer cancel()
-	credentials := Credentials{}
+	credName := CommonName(APP_BOOTSTRAP_CREDENTIALS_NAME)
+	credentials := Credentials{
+		Name: &credName,
+	}
 	body := CreateTeamAppJSONRequestBody{
 		Name:        appName,
 		Attributes:  attributes,
@@ -728,7 +732,24 @@ func (c *Access) CreateEmptyApp(orgName string, teamName string, appName string,
 	if result.StatusCode() > 299 {
 		return nil, NewConnectorHttpAllError("CreateTeamAppWithResponse", result.StatusCode(), result.Body)
 	}
-	return &result.JSON201.Credentials, nil
+
+	//returned credentials must be an object
+	createdCredentialsRaw, castOk := result.JSON201.Credentials.(map[string]interface{})
+
+	if !castOk {
+		return nil, NewConnectorError("CreateTeamAppWithResponse credentials not as expected", fmt.Errorf("no root error"))
+	}
+	createdCredentialsRawBytes, err := json.Marshal(createdCredentialsRaw)
+	if err != nil {
+		return nil, NewConnectorError("CreateTeamAppWithResponse - marshalling createdCredentials", err)
+	}
+
+	createdCredentials := Credentials{}
+	err = json.Unmarshal(createdCredentialsRawBytes, &createdCredentials)
+	if err != nil {
+		return nil, NewConnectorError("CreateTeamAppWithResponse - unmarshalling createdCredentials", err)
+	}
+	return &createdCredentials, nil
 }
 
 func (c *Access) AddApiProductToApp(orgName string, teamName string, appName string, apiProductName string, webHook *WebHook) (*AppResponse, bool, error) {
@@ -836,6 +857,7 @@ func (c *Access) RemoveApiProductFromApp(orgName string, teamName string, appNam
 	return nil
 }
 
+/*
 // todo optimize
 func (c *Access) GetAppCredentials(orgName string, teamName string, appName string) (string, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), connectorTimeout)
@@ -858,38 +880,100 @@ func (c *Access) GetAppCredentials(orgName string, teamName string, appName stri
 	}
 	return username, password, nil
 }
+*/
 
-func (c *Access) CreateNewSecret(orgName string, teamName string, appName string) (string, string, error) {
+// DeleteAndCleanAppCredentials - if there is only 1 credential available nothing will be deleted
+//
+//	credential with well-known-name APP_BOOTSTRAP_CREDENTIALS_NAME will not be deleted
+//	credential(s) with no-name (legacy credential) will be deleted (cleanup)
+//	credential with name=credentialName will be deleted
+func (c *Access) DeleteAndCleanAppCredentials(orgName string, teamName string, appName string, credentialName *string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), connectorTimeout)
 	defer cancel()
 	params := GetTeamAppParams{}
 	result, err := c.Client.GetTeamAppWithResponse(ctx, orgName, teamName, appName, &params)
 	if err != nil {
-		return "", "", NewConnectorError("CreateNewSecret GetTeamApp", err)
+		return NewConnectorError("GetTeamAppWithResponse", err)
+	}
+	if result.StatusCode() == 404 {
+		//app missing - credential does not exist anymore
+		log.Warnf("[conclieng] [DeleteAndCleanAppCredentials] TeamApp (%s) in team (%s) does not exist anymore", appName, teamName)
+		return nil
 	}
 	if result.StatusCode() > 299 {
-		return "", "", NewConnectorHttpAllError("CreateNewSecret GetTeamApp", result.StatusCode(), result.Body)
+		return NewConnectorHttpAllError("GetTeamAppWithResponse", result.StatusCode(), result.Body)
 	}
-	username := ""
-	if result.JSON200.Credentials.Secret != nil {
-		username = result.JSON200.Credentials.Secret.ConsumerKey
+	//check is it a single credential
+	_, castOk := result.JSON200.Credentials.(map[string]interface{})
+	if castOk {
+		// at least one credential must be present
+		return nil
 	}
-	secret := Secret{ConsumerKey: username}
-	credentials := Credentials{
-		Secret: &secret,
+	arrayCredentials, castOk := result.JSON200.Credentials.([]interface{})
+	if !castOk {
+		return NewConnectorError("CleanAppCredentials - could not cast to array of credentials", fmt.Errorf("app credentials not an array of credentials"))
 	}
-	body := UpdateTeamAppJSONRequestBody{
-		Credentials: &credentials,
-	}
-	paramsUpdate := UpdateTeamAppParams{}
-	resultUpdate, err := c.Client.UpdateTeamAppWithResponse(ctx, orgName, teamName, appName, &paramsUpdate, body)
+	credentialsRawBytes, err := json.Marshal(arrayCredentials)
 	if err != nil {
-		return "", "", NewConnectorHttpAllError("UpdateTeamAppWithResponse", result.StatusCode(), result.Body)
+		return NewConnectorError("CleanAppCredentials - marshalling array of credentials", err)
 	}
-	if resultUpdate.StatusCode() > 299 {
-		return "", "", NewConnectorHttpAllError("UpdateTeamAppWithResponse", result.StatusCode(), result.Body)
+	credentials := make([]Credentials, 0)
+	err = json.Unmarshal(credentialsRawBytes, &credentials)
+	if err != nil {
+		return NewConnectorError("CreateTeamAppWithResponse - unmarshalling array of credentials", err)
 	}
+	candidateCount := len(credentials)
+	for _, deleteCredentialCandidate := range credentials {
+		if deleteCredentialCandidate.Secret == nil {
+			//should never happen, just for safety
+			return NewConnectorError("CreateTeamAppWithResponse - Credentials without secret", fmt.Errorf("credentials without secret"))
+		}
+		if deleteCredentialCandidate.Name == nil || *deleteCredentialCandidate.Name == *credentialName {
+			//there must be at least one credential left
+			if candidateCount > 1 {
+				err := c.deleteAppCredential(orgName, teamName, appName, deleteCredentialCandidate.Secret.ConsumerKey)
+				if err != nil {
+					return NewConnectorError("CreateTeamAppWithResponse - deleting credential", err)
+				}
+				candidateCount--
+			} else {
+				//should never happen
+				log.Warnf("[conclient] deleteAndCleanAppCredentials would clean all credentials (teamName:%s appName:%s)", teamName, appName)
+			}
+		}
+	}
+	return nil
+}
 
-	return resultUpdate.JSON200.Credentials.Secret.ConsumerKey, *resultUpdate.JSON200.Credentials.Secret.ConsumerSecret, nil
+func (c *Access) deleteAppCredential(orgName string, teamName string, appName string, consumerKey string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), connectorTimeout)
+	defer cancel()
+	result, err := c.Client.DeleteTeamAppCredentialsWithResponse(ctx, orgName, teamName, appName, consumerKey)
+	if err != nil {
+		return NewConnectorError("DeleteAppCredential - DeleteTeamAppCredentialsWithResponse", err)
+	}
+	if result.StatusCode() == 404 {
+		return nil
+	}
+	if result.StatusCode() > 299 {
+		return NewConnectorHttpAllError("DeleteAppCredential - DeleteTeamAppCredentialsWithResponse", result.StatusCode(), result.Body)
+	}
+	return nil
+}
+
+func (c *Access) CreateNewSecret(orgName string, teamName string, appName string, credentialName string) (string, string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), connectorTimeout)
+	defer cancel()
+	payload := CreateTeamAppCredentialsJSONBody{
+		Name: &credentialName,
+	}
+	result, err := c.Client.CreateTeamAppCredentialsWithResponse(ctx, orgName, teamName, appName, payload)
+	if err != nil {
+		return "", "", NewConnectorError("CreateTeamAppCredentialsWithResponse", err)
+	}
+	if result.StatusCode() > 299 {
+		return "", "", NewConnectorHttpAllError("CreateTeamAppCredentialsWithResponse", result.StatusCode(), result.Body)
+	}
+	return result.JSON201.Secret.ConsumerKey, *result.JSON201.Secret.ConsumerSecret, nil
 
 }

@@ -6,6 +6,8 @@ const ATTRIBUTE_PUBLISHED_APIS = "_AX_PUBLISHED_APIS_"
 const ATTRIBUTE_OWNING_BUSINESS_GROUP_ID = "_AP_BUSINESS_GROUP_OWNING_ID_"
 const ATTRIBUTE_PUBLISH_DESTINATION = "_AP_PUBLISH_DESTINATION_"
 
+const APP_BOOTSTRAP_CREDENTIALS_NAME = "app-bootstrapping-credentials"
+
 var AxwaySolaceProtocolMapping = map[string]string{
 	"amqp":              "amqp",
 	"amqps":             "amqps",
