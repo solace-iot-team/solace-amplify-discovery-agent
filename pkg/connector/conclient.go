@@ -53,9 +53,9 @@ type ConnectorConfig struct {
 	ConnectorTimeout                  time.Duration
 	ConnectorDefaultBusinessGroupName string
 	AgentBusinesssGroupId             string
-	AgentBusinessGroupName            string
-	ConnectorPublishDestination       string
-	ConnectorTraceLevel               int
+	//AgentBusinessGroupName            string
+	ConnectorPublishDestination string
+	ConnectorTraceLevel         int
 }
 
 // Access Holds refernce to HTTP-Client to Solace Connector
