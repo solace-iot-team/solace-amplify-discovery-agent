@@ -36,8 +36,6 @@ type ConnectorConfig struct {
 	corecfg.IResourceConfigCallback
 	ConnectorURL                string `config:"url"`
 	ConnectorProxyURL           string `config:"proxyUrl"`
-	ConnectorAdminUser          string `config:"adminUser"`
-	ConnectorAdminPassword      string `config:"adminPassword"`
 	ConnectorOrgUser            string `config:"orgUser"`
 	ConnectorOrgPassword        string `config:"orgPassword"`
 	ConnectorInsecureSkipVerify bool   `config:"acceptInsecureCertificates"`

@@ -11,7 +11,6 @@ import (
 )
 
 type ConnectorProvisioner struct {
-	AdminConnector       *connector.Access
 	OrgConnector         *connector.Access
 	DefaultOrgName       string
 	DefaultTeamId        string
@@ -22,7 +21,6 @@ type ConnectorProvisioner struct {
 
 func NewConnectorProvisioner(connectorConfig *config.ConnectorConfig) (*ConnectorProvisioner, error) {
 	return &ConnectorProvisioner{
-		AdminConnector: connector.GetAdminConnector(),
 		OrgConnector:   connector.GetOrgConnector(),
 		DefaultOrgName: connectorConfig.ConnectorOrgMapping,
 		//todo externalize

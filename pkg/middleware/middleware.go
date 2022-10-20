@@ -49,8 +49,6 @@ func NewMiddleware(connectorConfig *config.ConnectorConfig) (*ConnectorMiddlewar
 	}
 
 	configCon := connector.ConnectorConfig{
-		ConnectorAdminUser:                connectorConfig.ConnectorAdminUser,
-		ConnectorAdminPassword:            connectorConfig.ConnectorAdminPassword,
 		ConnectorOrgUser:                  connectorConfig.ConnectorOrgUser,
 		ConnectorOrgPassword:              connectorConfig.ConnectorOrgPassword,
 		ConnectorURL:                      connectorConfig.ConnectorURL,
@@ -71,7 +69,6 @@ func NewMiddleware(connectorConfig *config.ConnectorConfig) (*ConnectorMiddlewar
 	}
 
 	return &ConnectorMiddleware{
-		AdminConnector:  connector.GetAdminConnector(),
 		OrgConnector:    connector.GetOrgConnector(),
 		DefaultOrgName:  connectorConfig.ConnectorOrgMapping,
 		ConnectorConfig: configCon,
@@ -108,10 +105,10 @@ func (a *ConnectorMiddleware) PrepareConnectorForAgent() error {
 		return fmt.Errorf("PrepareConnectorForAgent checked team exists %w", err)
 	}
 	if teamExists {
-		log.Tracef("[Middleware] [PrepareConnectorForAgent] 11pChecked Team (TeamId:%s TeamDisplayName:%s) exists in Connector", a.ConnectorConfig.AgentBusinessGroupName, a.ConnectorConfig.AgentBusinessGroupName)
+		log.Tracef("[Middleware] [PrepareConnectorForAgent] Checked Team (TeamId:%s) exists in Connector", a.ConnectorConfig.AgentBusinesssGroupId)
 		return nil
 	}
-	err = a.OrgConnector.CreateTeam(a.DefaultOrgName, a.ConnectorConfig.AgentBusinesssGroupId, a.ConnectorConfig.AgentBusinessGroupName)
+	err = a.OrgConnector.CreateTeam(a.DefaultOrgName, a.ConnectorConfig.AgentBusinesssGroupId, a.ConnectorConfig.AgentBusinesssGroupId)
 	if err != nil {
 		return fmt.Errorf("PrepareConnectorForAgent could not create Team in Connector %w", err)
 	}
@@ -329,39 +326,27 @@ func (a *ConnectorMiddleware) PublishSchemas() error {
 	return nil
 }
 
-func (a *ConnectorMiddleware) LogTraceLevelFine(format string, args ...interface{}) {
+func (a *ConnectorMiddleware) LogTraceLevelFine(logMessage string) {
 	if a.ConnectorConfig.ConnectorTraceLevel >= config.CONNECTOR_TRACELEVEL_FINE {
-		if args != nil && len(args) > 0 {
-			log.Tracef(format, args)
-		} else {
-			log.Tracef(format)
-		}
+		log.Tracef(logMessage)
 	}
 }
 
-func (a *ConnectorMiddleware) LogTraceLevelFiner(format string, args ...interface{}) {
+func (a *ConnectorMiddleware) LogTraceLevelFiner(logMessage string) {
 	if a.ConnectorConfig.ConnectorTraceLevel >= config.CONNECTOR_TRACELEVEL_FINER {
-		if args != nil && len(args) > 0 {
-			log.Tracef(format, args)
-		} else {
-			log.Tracef(format)
-		}
+		log.Tracef(logMessage)
 	}
 }
 
-func (a *ConnectorMiddleware) LogTraceLevelFinest(format string, args ...interface{}) {
+func (a *ConnectorMiddleware) LogTraceLevelFinest(logMessage string) {
 	if a.ConnectorConfig.ConnectorTraceLevel >= config.CONNECTOR_TRACELEVEL_FINEST {
-		if args != nil && len(args) > 0 {
-			log.Tracef(format, args)
-		} else {
-			log.Tracef(format)
-		}
+		log.Tracef(logMessage)
 	}
 }
 
 // DiscoverAPIs - Start API discovery, synchronization and publishing of AsyncAPIs
 func (a *ConnectorMiddleware) ProvisionApis() error {
-	a.LogTraceLevelFine("[Middleware] [ProvisionApis] start polling Solace Connector for AsyncApi products ")
+	a.LogTraceLevelFine("[Middleware] [ProvisionApis] [start] polling Solace Connector for AsyncApi products")
 	countCreated := 0
 	countUpdated := 0
 	countFailed := 0
@@ -372,24 +357,25 @@ func (a *ConnectorMiddleware) ProvisionApis() error {
 	}
 
 	for _, apiProduct := range *listApiProducts {
-		a.LogTraceLevelFiner("[Middleware] [ProvisionApis] processing ApiProduct %s (%s) ", apiProduct.Name, apiProduct.DisplayName)
+		//a.LogTraceLevelFiner("[Middleware] [ProvisionApis] processing ApiProduct %s (%s) ", apiProduct.Name, apiProduct.DisplayName)
 		publishFlag, publishDestination := connector.CheckContainsAttributeValue(&apiProduct.Attributes, connector.ATTRIBUTE_PUBLISH_DESTINATION, a.ConnectorConfig.ConnectorPublishDestination)
+		apiProductVersion := fmt.Sprint(*apiProduct.Meta.Version)
 
 		if !publishFlag {
 			if publishDestination == nil {
 				d := "--UNDEFINED--"
 				publishDestination = &d
 			}
-			a.LogTraceLevelFiner("[Middleware] [ProvisionApis] ignoring ApiProduct %s (%s) PUBLISH-DESTINATION (%s) ", apiProduct.Name, apiProduct.DisplayName, *publishDestination)
+			a.LogTraceLevelFiner(fmt.Sprintf("[Middleware] [ProvisionApis] ignoring ApiProduct %s (%s, %s). Ignoring PUBLISH-DESTINATION(%s) ", apiProduct.Name, apiProduct.DisplayName, apiProductVersion, *publishDestination))
 			continue
 		}
 
 		if *apiProduct.Meta.Stage == connector.Draft {
-			a.LogTraceLevelFiner("[Middleware] [ProvisionApis] ignoring ApiProduct %s (%s) DRAFT  ", apiProduct.Name, apiProduct.DisplayName)
+			a.LogTraceLevelFiner(fmt.Sprintf("[Middleware] [ProvisionApis] ignoring ApiProduct %s (%s, %s). Ignoring DRAFT state ", apiProduct.Name, apiProduct.DisplayName, apiProductVersion))
 			//ignoring DRAFT
 			continue
 		}
-		// DEPRECATED and RETIRED
+		// DEPRECATED and RETIRED not being removed from Amplify platform just tagged as RETIRED/DEPRECATED
 		/*
 			if *apiProduct.Meta.Stage != connector.Released {
 				if !agent.IsAPIPublishedByID(MapToExternalApiId(apiProduct.Name)) {
@@ -402,43 +388,43 @@ func (a *ConnectorMiddleware) ProvisionApis() error {
 		// checks references exactly 1 AsyncAPI
 		err = CheckPrecondidtionsOfApiProduct(&apiProduct)
 		if err != nil {
-			log.Warnf("[Middleware] [ProvisionApis] check of precondition failed for ApiProduct %s (%s) and ignoring it %w", apiProduct.Name, apiProduct.DisplayName, err)
+			log.Warnf("[Middleware] [ProvisionApis] check of precondition failed for ApiProduct %s (%s, %s) and ignoring it %w", apiProduct.Name, apiProduct.DisplayName, apiProductVersion, err)
 			continue
 		}
 		if connector.CheckContainsAttribute(apiProduct.Meta.Attributes, ATTRIBUTE_CON_META_APIPRODUCT_AXDEPLOYMENT) {
 			//not new
-
 			provisioned, err := a.publishUpdatedApiProduct(&apiProduct)
 			if err != nil {
 				countFailed++
-				log.Errorf("[Middleware] [ProvisionApis] updating Axway Service for ApiProduct %s (%s) failed (%w) ", apiProduct.Name, apiProduct.DisplayName, err)
+				log.Errorf("[Middleware] [ProvisionApis] updating Amplify Service for ApiProduct %s (%s, %s) failed (%w) ", apiProduct.Name, apiProduct.DisplayName, apiProductVersion, err)
 			} else {
 				if provisioned {
-					a.LogTraceLevelFiner("[Middleware] [ProvisionApis] updated Axway Service for ApiProduct %s (%s)  ", apiProduct.Name, apiProduct.DisplayName)
+					a.LogTraceLevelFiner(fmt.Sprintf("[Middleware] [ProvisionApis] updated Amplify Service for ApiProduct %s (%s, %s)  ", apiProduct.Name, apiProduct.DisplayName, apiProductVersion))
 					countUpdated++
 				} else {
-					a.LogTraceLevelFiner("[Middleware] [ProvisionApis] ignoring as already provisioned in Axway, ApiProduct %s (%s)  ", apiProduct.Name, apiProduct.DisplayName)
+					a.LogTraceLevelFiner(fmt.Sprintf("[Middleware] [ProvisionApis] ignoring ApiProduct %s (%s, %s) already provisioned in Amplify", apiProduct.Name, apiProduct.DisplayName, apiProductVersion))
 				}
 			}
 
 		} else {
-			a.LogTraceLevelFiner("[Middleware] [ProvisionApis] provisioning new Axway Service for ApiProduct %s (%s)  ", apiProduct.Name, apiProduct.DisplayName)
+
 			err = a.publishNewApiProduct(&apiProduct)
 			if err != nil {
 				countFailed++
-				a.LogTraceLevelFiner("[Middleware] [ProvisionApis] provisioning new Axway Service for ApiProduct %s (%s) failed (%w) ", apiProduct.Name, apiProduct.DisplayName, err)
+				a.LogTraceLevelFiner(fmt.Sprintf("[Middleware] [ProvisionApis] provisioning ApiProduct %s (%s, %s) in Amplify as Service failed (%w) ", apiProduct.Name, apiProduct.DisplayName, apiProductVersion, err))
 			} else {
+				a.LogTraceLevelFiner(fmt.Sprintf("[Middleware] [ProvisionApis] [ok] ApiProduct %s (%s, %s) provisioned in Amplify ", apiProduct.Name, apiProduct.DisplayName, apiProductVersion))
 				countCreated++
 			}
 		}
 	}
 	if countFailed > 0 {
-		log.Warnf("[Middleware] [ProvisionApis] finished provisioning of Axway Services #(created:%d updated %d failed %d)", countCreated, countUpdated, countFailed)
+		log.Warnf("[Middleware] [ProvisionApis] [done with errors] polling Solace Connector for AsyncApi Products. Amplify Services #(created:%d updated %d failed %d)", countCreated, countUpdated, countFailed)
 	} else {
 		if countUpdated > 0 || countCreated > 0 {
-			log.Infof("[Middleware] [ProvisionApis] finished provisioning of Axway Services #(created:%d updated %d failed %d)", countCreated, countUpdated, countFailed)
+			log.Infof("[Middleware] [ProvisionApis] [done] polling Solace Connector for AsyncApi Products. Amplify Services #(created:%d updated %d failed %d)", countCreated, countUpdated, countFailed)
 		} else {
-			a.LogTraceLevelFine("[Middleware] [ProvisionApis] finished provisioning of Axway Services #(created:%d updated %d failed %d)", countCreated, countUpdated, countFailed)
+			a.LogTraceLevelFine(fmt.Sprintf("[Middleware] [ProvisionApis] [done] polling Solace Connector for AsyncApi Products. Amplify Services #(created:%d updated %d failed %d)", countCreated, countUpdated, countFailed))
 		}
 	}
 
@@ -556,7 +542,7 @@ func (a *ConnectorMiddleware) publishApiServiceRevision(apiName string, containe
 	err = agent.PublishAPI(*serviceBody)
 
 	if err != nil {
-		return nil, fmt.Errorf("publishApiServiceRevision failed publishing into Axway Amplify %w", err)
+		return nil, fmt.Errorf("publishApiServiceRevision failed publishing into Amplify %w", err)
 	}
 	return serviceBody, nil
 }

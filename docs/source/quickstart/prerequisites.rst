@@ -66,8 +66,6 @@ More details about `Solace Platform API` are described at GitHub `solace-iot-tea
 
   * URL of `Solace Platform API`
 
-  * `admin` user and password
-
   * `Org-Admin` user and password
 
 
