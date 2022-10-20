@@ -62,8 +62,6 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 	connectorConfig = &config.ConnectorConfig{
 		ConnectorURL:                rootProps.StringPropertyValue("connector.url"),
 		ConnectorProxyURL:           rootProps.StringPropertyValue("connector.proxyUrl"),
-		ConnectorAdminUser:          rootProps.StringPropertyValue("connector.adminUser"),
-		ConnectorAdminPassword:      rootProps.StringPropertyValue("connector.adminPassword"),
 		ConnectorOrgUser:            rootProps.StringPropertyValue("connector.orgUser"),
 		ConnectorOrgPassword:        rootProps.StringPropertyValue("connector.orgPassword"),
 		ConnectorInsecureSkipVerify: rootProps.BoolPropertyValue("connector.acceptInsecureCertificates"),

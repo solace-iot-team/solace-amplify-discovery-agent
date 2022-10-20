@@ -19,11 +19,6 @@ var connectors = connectorClients{}
 
 var connectorTimeout time.Duration
 
-// GetAdminConnector - connector as admin
-func GetAdminConnector() *Access {
-	return connectors.AdminConnector
-}
-
 // GetOrgConnector - connector as org-admin
 func GetOrgConnector() *Access {
 	return connectors.OrgConnector
@@ -53,9 +48,8 @@ type ConnectorConfig struct {
 	ConnectorTimeout                  time.Duration
 	ConnectorDefaultBusinessGroupName string
 	AgentBusinesssGroupId             string
-	//AgentBusinessGroupName            string
-	ConnectorPublishDestination string
-	ConnectorTraceLevel         int
+	ConnectorPublishDestination       string
+	ConnectorTraceLevel               int
 }
 
 // Access Holds refernce to HTTP-Client to Solace Connector
@@ -66,8 +60,7 @@ type Access struct {
 }
 
 type connectorClients struct {
-	AdminConnector *Access
-	OrgConnector   *Access
+	OrgConnector *Access
 }
 
 // WithTLSConfig - Creates ClientOption
@@ -128,24 +121,15 @@ func Initialize(connectorConfig ConnectorConfig, externalLogger ClientLogger) er
 	if err != nil {
 		return err
 	}
-	adminClient, err := NewConnectorAdminClient(connectorConfig)
-	if err != nil {
-		return err
-	}
 
 	connectors.OrgConnector = &Access{
 		Client:    orgClient,
 		LogBody:   connectorConfig.ConnectorLogBody,
 		LogHeader: connectorConfig.ConnectorLogHeader,
 	}
-	connectors.AdminConnector = &Access{
-		Client:    adminClient,
-		LogBody:   connectorConfig.ConnectorLogBody,
-		LogHeader: connectorConfig.ConnectorLogHeader,
-	}
 
 	//register HealthChecker
-	hc.RegisterHealthcheck("Solace-Connector", "solace", connectors.AdminConnector.Healthcheck)
+	hc.RegisterHealthcheck("Solace-Connector", "solace", connectors.OrgConnector.Healthcheck)
 
 	return nil
 }

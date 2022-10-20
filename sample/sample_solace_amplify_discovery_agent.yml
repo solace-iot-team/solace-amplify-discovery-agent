@@ -49,10 +49,6 @@ connector:
   # If variable is not defined, fallback to default convention
   # orgMapping: some-connector-org-name
 
-  # Solace Connector admin user
-  adminUser: admin
-  # Solace Connector admin password
-  adminPassword: secret
   # Solace Connector organization user
   orgUser: user
   # Solace Connector organization user password

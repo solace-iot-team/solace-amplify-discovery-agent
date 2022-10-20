@@ -130,8 +130,6 @@ data:
     base64Encoded_amplify_service_account_publickey__including_newline_characters
   secret.privatekey: |
     base64Encoded_amplify_service_account_privatekey__including_newline_characters
-  secret.adminuser: base64Encoded_solace_connector_admin_user
-  secret.adminpassword: base64Encoded_solace_connector_admin_password
   secret.orguser: base64Encoded_solace_connector_org_user
   secret.orguserpassword: base64Encoded_solace_connector_org_password
 
@@ -175,16 +173,6 @@ spec:
             secretKeyRef:
               name: agent-secret
               key: secret.clientid
-        - name: CONNECTOR_ADMINUSER
-          valueFrom:
-            secretKeyRef:
-              name: agent-secret
-              key: secret.adminuser
-        - name: CONNECTOR_ADMINPASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: agent-secret
-              key: secret.adminpassword
         - name: CONNECTOR_ORGUSER
           valueFrom:
             secretKeyRef:

@@ -49,8 +49,6 @@ func NewMiddleware(connectorConfig *config.ConnectorConfig) (*ConnectorMiddlewar
 	}
 
 	configCon := connector.ConnectorConfig{
-		ConnectorAdminUser:                connectorConfig.ConnectorAdminUser,
-		ConnectorAdminPassword:            connectorConfig.ConnectorAdminPassword,
 		ConnectorOrgUser:                  connectorConfig.ConnectorOrgUser,
 		ConnectorOrgPassword:              connectorConfig.ConnectorOrgPassword,
 		ConnectorURL:                      connectorConfig.ConnectorURL,
@@ -71,7 +69,6 @@ func NewMiddleware(connectorConfig *config.ConnectorConfig) (*ConnectorMiddlewar
 	}
 
 	return &ConnectorMiddleware{
-		AdminConnector:  connector.GetAdminConnector(),
 		OrgConnector:    connector.GetOrgConnector(),
 		DefaultOrgName:  connectorConfig.ConnectorOrgMapping,
 		ConnectorConfig: configCon,
