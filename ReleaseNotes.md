@@ -1,5 +1,16 @@
 # Release Notes
 
+## Version 0.2.1
+
+### Features
+
+* Removed Solace connector admin user
+  * Admin user privileges no longer needed for the agent. 
+
+### Fixes
+
+* Log entries formatting issues
+ 
 ## Version 0.2.0
 
 ### Features
