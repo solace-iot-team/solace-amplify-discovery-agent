@@ -51,7 +51,10 @@
 <li class="toctree-l4"><a class="reference internal" href="#amplify-teams">Amplify Teams</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#solace-environment">Solace Environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#solace-environment">Solace Environment</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#preparation-of-solace-platform">Preparation of Solace Platform</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
@@ -87,12 +90,19 @@
              
   <section id="prerequisites">
 <h1>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading"></a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Solace platform assigns artefacts (here <cite>Solace API-Products</cite>) to a <cite>Business Group</cite>. <cite>Business Groups</cite> are identified by an unique id (<cite>Business Group Id</cite>) and exposed by a <cite>Business Group Name</cite>.</p>
+<p>Amplify platform assigns  artefacts (<cite>Services</cite>, <cite>Assets</cite>, …) within an <cite>Organization</cite> to <cite>Teams</cite>. <cite>Teams</cite> are identified by an unique id (<cite>Team Id</cite>) and exposed by a <cite>Team Name</cite>.</p>
+<p><cite>Solace Platform API-Products</cite> will be deployed into <cite>Amplify Catalog</cite> as <cite>Amplify Service</cite>. The owning <cite>Amplify Team</cite> will be mapped by convention against the <cite>Solace Business Group Name</cite> assigned to the <cite>Solace API-Product</cite>. <cite>solace-amplify-discovery-agent</cite> tries to map the <cite>Solace Business Group Name</cite> against an <cite>Amplify Team Name</cite>. If this mapping is not possible due to missing <cite>Amplify Team Name</cite> the agent will use a fallback <cite>Amplify Team Name</cite> defined as configuration option <cite>connector.defaultBusinessGroupName</cite>.</p>
+<p>It is the responsibility of the administrators of Solace platform and Amplify platform to maintain the set of <cite>Solace Business Group Names</cite> with their corresponding <cite>Amplify Team Names</cite>.</p>
+</div>
 <section id="amplify-platform">
 <h2>Amplify Platform<a class="headerlink" href="#amplify-platform" title="Permalink to this heading"></a></h2>
 <section id="create-public-private-key-pair-as-pem-files">
 <h3>Create Public/Private Key Pair as <cite>PEM</cite>-files<a class="headerlink" href="#create-public-private-key-pair-as-pem-files" title="Permalink to this heading"></a></h3>
 <p><em>solace-amplify-discovery-agent for Async API-Management</em> authenticates itself against <em>Amplify API server</em> by a certificate.</p>
-<p>A certificate can get created by Amplify platform during registration of a Amplify Service Account or by utilizing 3rd party tooling:</p>
+<p>A certificate can be created by Amplify platform during registration of a Amplify Service Account or by utilizing 3rd party tooling:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">openssl</span> <span class="n">genpkey</span> <span class="o">-</span><span class="n">algorithm</span> <span class="n">RSA</span> <span class="o">-</span><span class="n">out</span> <span class="n">private_key</span><span class="o">.</span><span class="n">pem</span> <span class="o">-</span><span class="n">pkeyopt</span> <span class="n">rsa_keygen_bits</span><span class="p">:</span><span class="mi">2048</span>
 </pre></div>
 </div>
@@ -133,31 +143,28 @@
 <section id="solace-environment">
 <h2>Solace Environment<a class="headerlink" href="#solace-environment" title="Permalink to this heading"></a></h2>
 <p><em>Solace Amplify Agent for Async API-Management</em> communicates with Solace Platform via <cite>Solace Platform API</cite>.
-More details about <cite>Solace Platform API</cite> are described at GitHub <cite>solace-iot-team/platform-api &lt;https://github.com/solace-iot-team/platform-api&gt;</cite></p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>These details must get provided during installation:</p>
+More details about <cite>Solace Platform API</cite> are described at GitHub <a class="reference external" href="https://github.com/solace-iot-team/platform-api">solace-iot-team/platform-api</a>.</p>
+<section id="preparation-of-solace-platform">
+<h3>Preparation of Solace Platform<a class="headerlink" href="#preparation-of-solace-platform" title="Permalink to this heading"></a></h3>
+<p>Within Solace Platform a minimum set of assets must be created upfront and will later be used to configure <cite>solace-amplify-discovery-agent</cite>:</p>
 <ul class="simple">
-<li><p>URL of <cite>Solace Platform API</cite></p></li>
-<li><p><cite>Org-Admin</cite> user and password</p></li>
-</ul>
-</div>
-<p>An <em>Organization</em> within <cite>Solace Platform API</cite> service with at least one <em>Solace-Environment</em> must be provisioned:</p>
-<blockquote>
-<div><ul class="simple">
+<li><p>An <em>Organization</em> within Solace platform with at least one <em>Solace-Environment</em> must be provisioned:</p>
+<ul>
 <li><p>Option a: the name of the <em>Organization</em> is the same as Amplify <cite>Environment</cite></p></li>
 <li><p>Option b: arbitrary name of the <em>Organization</em> and configured <cite>orgMapping</cite> (see <cite>CONNECTOR_ORGMAPPING</cite> environment variable in sample) with the name of the <em>Organization</em></p></li>
 <li><p>The <em>Organization</em> must have at least one <em>Solace-Environment</em> and assigned <cite>Protocols</cite> (e.g. <cite>mqtt</cite> or <cite>smf</cite>) that will later get used in Amplify as <cite>Endpoint</cite>.</p></li>
 </ul>
-</div></blockquote>
-<p>Teams within ‘Solace Platform API’ service must be provisioned:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>solace-amplify-discovery-agent will provision <cite>Apps</cite> into Solace Platform API in the context of a pre-defined team</p></li>
-<li><p>the team-id is configured as parameter <cite>connector.agentBusinessGroupId</cite> in solace-amplify-discovery-agent configuration file.</p></li>
-<li><p>there must be the team and team-id provisioned in Solace Platform API</p></li>
+</li>
+<li><p>A username and password to access the organization in Solace platform API</p></li>
+<li><p><cite>Business Groups</cite></p>
+<ul>
+<li><p>a default <cite>Business Group Name</cite> mapped to an existing <cite>Amplify Team Name</cite> becoming the owner of <cite>Amplify Catalog Services</cite></p></li>
+<li><p>target <cite>Business Group Id</cite> for applications being deployed into Solace Platform</p></li>
 </ul>
-</div></blockquote>
+</li>
+<li><p><cite>External System Name</cite> which will be used as filter criteria by <cite>solace-amplify-discovery-agent</cite> to determine which <cite>Solace API-Products</cite> will be deployed into Amplify platform</p></li>
+</ul>
+</section>
 </section>
 </section>
 
@@ -173,7 +180,7 @@ More details about <cite>Solace Platform API</cite> are described at GitHub <cit
 
   <div role="contentinfo">
     <p>&#169; Copyright 2022, Solace Corporation, Jochen Traunecker, &lt;jochen.traunecker@solace.com&gt;.
-      <span class="lastupdated">Last updated on 20 Oct 2022 at 13:57.
+      <span class="lastupdated">Last updated on 21 Oct 2022 at 09:16.
       </span></p>
   </div>
 

@@ -85,8 +85,8 @@
 <p>Releases of the agent are published to Docker Hub and are located at <a class="reference external" href="https://hub.docker.com/repository/docker/solaceiotteam/solace-amplify-discovery-agent">solaceiotteam/solace-amplify-discovery-agent</a> .</p>
 <section id="configuration-of-solace-amplify-discovery-agent-docker-container">
 <h2>Configuration of <cite>solace-amplify-discovery-agent</cite> Docker container<a class="headerlink" href="#configuration-of-solace-amplify-discovery-agent-docker-container" title="Permalink to this heading"></a></h2>
-<p>The agent is getting configured by providing environment variables.</p>
-<p>A documented sample of all environment variables is located at <a class="reference external" href="https://github.com/solace-iot-team/solace-amplify-discovery-agent/tree/main/sample">.env.sample</a></p>
+<p>The agent is configured by providing a configuration file and/or environment variables.</p>
+<p>A documented sample of the configuration options is located at  <a class="reference external" href="https://github.com/solace-iot-team/solace-amplify-discovery-agent/tree/main/sample">https://github.com/solace-iot-team/solace-amplify-discovery-agent/tree/main/sample</a> .</p>
 <ul class="simple">
 <li><p>solace-amplify-discovery-agent is executed as user <cite>AGENT</cite> (uid=9999,gid=9999)</p></li>
 <li><p>Path <cite>/opt/agent</cite> is read and writeable for user AGENT</p></li>
@@ -153,7 +153,7 @@ The agent writes a copy of the key-data to the key-files locations and continues
 
   <div role="contentinfo">
     <p>&#169; Copyright 2022, Solace Corporation, Jochen Traunecker, &lt;jochen.traunecker@solace.com&gt;.
-      <span class="lastupdated">Last updated on 20 Oct 2022 at 13:57.
+      <span class="lastupdated">Last updated on 21 Oct 2022 at 09:16.
       </span></p>
   </div>
 
