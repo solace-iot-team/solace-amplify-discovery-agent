@@ -2,6 +2,7 @@
 Solace Amplify Agent for Async API Management
 =============================================
 
+GitHub Repository `solace-iot-team/solace-amplify-discovery-agent <https://github.com/solace-iot-team/solace-amplify-discovery-agent>`_ .
 
 .. toctree::
   :maxdepth: 1

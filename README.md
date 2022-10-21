@@ -2,6 +2,8 @@
 
 Solace Amplify Discovery Agent for publishing AsyncAPIs from Solace Event Portal 2.0 into Axway Amplify platform and provisioning of AsyncAPI subscriptions into Solace Event Management Platform. 
 
+[Read the docs](https://solace-iot-team.github.io/solace-amplify-discovery-agent/index.html)
+
 ## Development
 ### Prerequisites
 
