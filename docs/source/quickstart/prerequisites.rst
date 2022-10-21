@@ -67,7 +67,7 @@ Solace Environment
 ------------------
 
 *Solace Amplify Agent for Async API-Management* communicates with Solace Platform via `Solace Platform API`.
-More details about `Solace Platform API` are described at GitHub `solace-iot-team/platform-api <https://github.com/solace-iot-team/platform-api>`
+More details about `Solace Platform API` are described at GitHub `solace-iot-team/platform-api <https://github.com/solace-iot-team/platform-api>`_.
 
 Preparation of Solace Platform
 ++++++++++++++++++++++++++++++
