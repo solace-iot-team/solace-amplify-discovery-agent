@@ -105,9 +105,12 @@ data:
   CONNECTOR_ACCEPTINSECURECERTIFICATES: "true" 
   CONNECTOR_LOGBODY: "true"
   CONNECTOR_LOGHEADER: "true"
+  # fallback Amplify team name to assign the owner of a service within Amplify 
   CONNECTOR_DEFAULTBUSINESSGROUPNAME: "ACME-Retail-Providers"
+  # Solace platform business group id applications will be assigned to within Solace platform
   CONNECTOR_AGENTBUSINESSGROUPID: "ACME-CONNECTOR-BG-ID"
-  CONNECTOR_PUBLISHDESTINATION: "some-connector-publish-destionation"
+  # Filter criteria when polling Solace platform
+  CONNECTOR_PUBLISHDESTINATION: "some-connector-publish-destination"
   # 0=fine 1=finer 2=finest for LOG_LEVEL=trace
   CONNECTOR_TRACELEVEL: "2"
   CONNECTOR_TIMEOUT: "60s"
