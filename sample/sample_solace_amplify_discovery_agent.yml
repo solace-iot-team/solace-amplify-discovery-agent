@@ -3,33 +3,33 @@ log:
   level: trace
 # optional - directory containing SSL/TLS public certificates of endpoints this agent is establishing connections to
 ssl_cert_dir: "/path/to/directory"
-# Configuration options offered by Axway Agent SDK
+# Configuration options offered by Axway Amplify Agent SDK
 central:
   grpc:
     # Enable/disable grpc callback channel as alternative to polling (see pollInterval)
     enabled: 'false'
-  # Pollinterval agent is polling Axway Central (min 30 seconds)
+  # Pollinterval agent is polling Amplify Central (min 30 seconds)
   pollInterval: 30s
-  # Axway Central API Endpoint
+  # Amplify Central API Endpoint
   url: https://central.eu-fr.axway.com
-  # Proxy for Axway Central Endpoint
+  # Proxy for Amplify Central Endpoint
   # proxyUrl: https://abc:123
 
-  # Axway Central Organization ID
+  # Amplify Central Organization ID
   organizationID: 12345
-  # Axway Central Environment
+  # Amplify Central Environment
   environment: abc-efg-1
   auth:
-    # Axway Central Service Account
+    # Amplify Central Service Account
     clientID: DOSA_abc123
-    # Path and Filename of Axway Central Service Account private key as PEM
+    # Path and Filename of Amplify Central Service Account private key as PEM
     privateKey: "/path/to/private_key.pem"
       # Optional - PEM content as one line PEM
       #            will be written as PEM in central.auth.privateKey file defined in here
       #            can get used to bootstrap and share PEM via environment variable
       # use awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' cert-name.pem  to transform PEM file
       # data: "-----BEGIN PRIVATE KEY----- ..."
-    # Path and Filename of Axway Central Service Account public key as PEM
+    # Path and Filename of Amplify Central Service Account public key as PEM
     publicKey: "/path/to/public_key.pem"
       # Optional - PEM content as one line PEM
       #            will be written as PEM in central.auth.publicKey file defined in here
@@ -45,7 +45,7 @@ connector:
   # Proxy for Solace Connector endpoint
   # proxyUrl: http://abc:123
 
-  # Optional name of Connector Org instead of default convention AXWAY-ENVIRONMENT-NAME = CONNECTOR-ORG_NAME
+  # Optional name of Connector Org instead of default convention AMPLIFY-ENVIRONMENT-NAME = CONNECTOR-ORG_NAME
   # If variable is not defined, fallback to default convention
   # orgMapping: some-connector-org-name
 
@@ -70,7 +70,7 @@ connector:
   # timeout for http-client against solace-connector rest endpoint
   # there are time consuming operations like provisioning of webhooks etc.
   timeout: 60s
-  # fallback if business-group-id of solace-client can not get mapped against axway-team-id
+  # fallback if business-group-id of solace-client can not get mapped against amplify-team-id
   defaultBusinessGroupName: api-team
-  # all applications will be assigned this businessGroupId in solace-connector
+  # all apps will be assigned this businessGroupId in solace platform
   agentBusinessGroupId: 0dd65634-b1c6-45d0-8f76-b2bc99d1d28a

@@ -10,9 +10,9 @@ Releases of the agent are published to Docker Hub and are located at `solaceiott
 Configuration of `solace-amplify-discovery-agent` Docker container
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-The agent is getting configured by providing environment variables.
+The agent is configured by providing a configuration file and/or environment variables.
 
-A documented sample of all environment variables is located at `.env.sample <https://github.com/solace-iot-team/solace-amplify-discovery-agent/tree/main/sample>`_
+A documented sample of the configuration options is located at  <https://github.com/solace-iot-team/solace-amplify-discovery-agent/tree/main/sample>`_
 
 * solace-amplify-discovery-agent is executed as user `AGENT` (uid=9999,gid=9999)
 * Path `/opt/agent` is read and writeable for user AGENT
