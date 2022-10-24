@@ -17,6 +17,7 @@ debug
 **/._.DS_Store
 
 .env.local
+/.local_not_shared
 
 # Vendor packages
 vendor/**
