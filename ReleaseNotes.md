@@ -1,5 +1,16 @@
 # Release Notes
 
+## Version 0.2.2
+
+### Features
+
+* Endpoint information 
+  * Detailed endpoint information (protocol, protocol version, uri, message vpn name) is added to subscriptions information
+
+### Fixes
+
+* no bug fixed
+
 ## Version 0.2.1
 
 ### Features

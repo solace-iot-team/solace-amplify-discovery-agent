@@ -45,9 +45,8 @@ connector:
   # Proxy for Solace Connector endpoint
   # proxyUrl: http://abc:123
 
-  # Optional name of Connector Org instead of default convention AMPLIFY-ENVIRONMENT-NAME = CONNECTOR-ORG_NAME
-  # If variable is not defined, fallback to default convention
-  # orgMapping: some-connector-org-name
+  # Name of Connector-Org
+  orgMapping: some-connector-org-name
 
   # Solace Connector organization user
   orgUser: user

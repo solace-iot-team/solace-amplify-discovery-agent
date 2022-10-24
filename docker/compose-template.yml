@@ -3,23 +3,27 @@ services:
   agent:
     image: "solace-amplify-discovery-agent:latest"
     environment:
+      #either enable POLLINTERVAL or GRPC
       CENTRAL_POLLINTERVAL: "30s"
+      # CENTRAL_GRPC_ENABLED: 'true'
       CENTRAL_URL: "https://central.eu-fr.axway.com"
       CENTRAL_ORGANIZATIONID:
       CENTRAL_ENVIRONMENT:
       CENTRAL_AUTH_CLIENTID: "DOSA_"
       CENTRAL_AUTH_PRIVATEKEY_DATA: "-----BEGIN PRIVATE KEY----------END PRIVATE KEY-----\n"
       CENTRAL_AUTH_PUBLICKEY_DATA: "-----BEGIN PUBLIC KEY----- \n-----END PUBLIC KEY-----\n"
+      CONNECTOR_ORGMAPPING:
       CONNECTOR_URL:
       CONNECTOR_ORGUSER:
       CONNECTOR_ORGPASSWORD:
-      CONNECTOR_ACCEPTINSECURECERTIFICATES:
-      CONNECTOR_DEFAULTBUSINESSGROUPID:
-      CONNECTOR_DEFAULTBUSINESSGROUP:
+      # CONNECTOR_ACCEPTINSECURECERTIFICATES:
+      CONNECTOR_DEFAULTBUSINESSGROUPNAME:
       CONNECTOR_AGENTBUSINESSGROUPID:
+      CONNECTOR_PUBLISHDESTINATION:
       CONNECTOR_TIMEOUT: "60s"
       CONNECTOR_TRACELEVEL: 0
       SSL_CERT_DIR: "/var/agent/certs"
-    volumes:
-      - /local/path/to/ca_certs:/var/agent/certs
+    #mount a volume with root-ca etc. certificate if specific certificates are used by endpoints
+    #volumes:
+    #  - /local/path/to/ca_certs:/var/agent/certs
 

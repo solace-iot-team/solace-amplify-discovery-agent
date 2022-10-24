@@ -60,29 +60,25 @@ func (a *ConnectorProvisioner) LogTraceLevelFinest(format string, args ...interf
 }
 
 func (c *ConnectorProvisioner) ApplicationRequestProvision(request provisioning.ApplicationRequest) provisioning.RequestStatus {
-	c.LogTraceLevelFine("[Provisioner] [ApplicationRequestProvision]  ApplicationName: %s", request.GetManagedApplicationName())
-
 	teamName := c.AgentBusinessGroupId
-
 	_, err := c.OrgConnector.CreateEmptyApp(c.DefaultOrgName, teamName, request.GetManagedApplicationName(), nil)
 	if err != nil {
-		log.Errorf("[Provisioner] [ApplicationRequestProvision]  TeamName:%s ApplicationName:%s  %w", teamName, request.GetManagedApplicationName(), err)
+		log.Errorf("[Provisioner] [ApplicationProvisioningRequest] CreateEmptyApp  TeamName:%s ApplicationName:%s  %w", teamName, request.GetManagedApplicationName(), err)
 		return provisioning.NewRequestStatusBuilder().SetMessage("Failed creating connector app").Failed()
 	}
-	c.LogTraceLevelFiner("[Provisioner] [ApplicationRequestProvision] successfully created empty application for team:%s appName:%s  ", request.GetTeamName(), request.GetManagedApplicationName())
+	c.LogTraceLevelFiner(fmt.Sprintf("[Provisioner] [ApplicationProvisioningRequest] Team:%s AppName:%s - created application", request.GetTeamName(), request.GetManagedApplicationName()))
 	return provisioning.NewRequestStatusBuilder().SetMessage("ok").Success()
 }
 
 func (c *ConnectorProvisioner) ApplicationRequestDeprovision(request provisioning.ApplicationRequest) provisioning.RequestStatus {
-	c.LogTraceLevelFine("[Provisioner] [ApplicationRequestDeprovision]  ApplicationName: %s", request.GetManagedApplicationName())
 	teamName := c.AgentBusinessGroupId
 	err := c.OrgConnector.DeleteApp(c.DefaultOrgName, teamName, request.GetManagedApplicationName())
 	if err != nil {
-		log.Errorf("[Provisioner] [ApplicationRequestDeprovision] TeamName:%s ApplicationName:%s  %w", request.GetTeamName(), request.GetManagedApplicationName(), err)
+		log.Errorf("[Provisioner] [ApplicationDeprovisioningRequest] DeleteApp TeamName:%s ApplicationName:%s  %w", request.GetTeamName(), request.GetManagedApplicationName(), err)
 		return provisioning.NewRequestStatusBuilder().SetMessage("Failed removing connector app").Failed()
 
 	}
-	c.LogTraceLevelFiner("[Provisioner] [ApplicationRequestDeprovision]  successfully deprovisioned ApplicationName: %s", request.GetManagedApplicationName())
+	c.LogTraceLevelFiner(fmt.Sprintf("[Provisioner] [ApplicationDeprovisioningRequest] Team:%s AppName:%s - deleted application", request.GetTeamName(), request.GetManagedApplicationName()))
 	return provisioning.NewRequestStatusBuilder().SetMessage("ok").Success()
 }
 
@@ -92,10 +88,6 @@ func (c *ConnectorProvisioner) AccessRequestProvision(request provisioning.Acces
 	//correlates to product-id in connector
 	externalApiId := fmt.Sprint(details["externalAPIID"])
 	appName := request.GetApplicationName()
-
-	c.LogTraceLevelFine("[Provisioner] [AccessRequestProvision]  ApplicationName: %s  Product-Id: %s", appName, externalApiId)
-
-	//todo retrieve TeamName
 
 	webhookValidationFeedback := ""
 	var webhook *connector.WebHook = nil
@@ -191,7 +183,7 @@ func (c *ConnectorProvisioner) AccessRequestProvision(request provisioning.Acces
 
 	_, webhookCreated, err := c.OrgConnector.AddApiProductToApp(c.DefaultOrgName, teamName, appName, externalApiId, webhook)
 	if err != nil {
-		log.Errorf("[Provisioner] [AccessRequestProvision] TeamName:%s ApplicationName:%s ExternalApiId=ProductId:%s  %w", teamName, appName, externalApiId, err)
+		log.Errorf("[Provisioner] [AccessProvisioningRequest] TeamName: %s ApplicationName: %s ExternalApiId=ProductId: %s - can not add ApiProduct to app %w", teamName, appName, externalApiId, err)
 		accessDatContent := make(map[string]interface{})
 		accessData := provisioning.NewAccessDataBuilder().SetData(accessDatContent)
 		return provisioning.NewRequestStatusBuilder().SetMessage("provisioning failed").Failed(), accessData
@@ -199,13 +191,13 @@ func (c *ConnectorProvisioner) AccessRequestProvision(request provisioning.Acces
 
 	appResponse, err := c.OrgConnector.GetTeamApp(c.DefaultOrgName, teamName, appName)
 	if err != nil {
-		log.Errorf("[Provisioner] [AccessRequestProvision] TeamName:%s ApplicationName:%s ExternalApiId=ProductId:%s can not retrieve TeamApp  %w", teamName, appName, externalApiId, err)
+		log.Errorf("[Provisioner] [AccessProvisioningRequest] TeamName: %s ApplicationName: %s ExternalApiId=ProductId: %s - can not retrieve TeamApp  %w", teamName, appName, externalApiId, err)
 		accessDatContent := make(map[string]interface{})
 		accessData := provisioning.NewAccessDataBuilder().SetData(accessDatContent)
 		return provisioning.NewRequestStatusBuilder().SetMessage("provisioning failed").Failed(), accessData
 	}
 	if appResponse == nil {
-		log.Errorf("[Provisioner] [AccessRequestProvision] TeamName:%s ApplicationName:%s ExternalApiId=ProductId:%s TeamApp does not exist anymore  %w", teamName, appName, externalApiId, err)
+		log.Errorf("[Provisioner] [AccessProvisioningRequest] TeamName: %s AppName: %s ExternalApiId=ProductId: %s - TeamApp does not exist anymore  %w", teamName, appName, externalApiId, err)
 		accessDatContent := make(map[string]interface{})
 		accessData := provisioning.NewAccessDataBuilder().SetData(accessDatContent)
 		return provisioning.NewRequestStatusBuilder().SetMessage("provisioning failed").Failed(), accessData
@@ -215,6 +207,7 @@ func (c *ConnectorProvisioner) AccessRequestProvision(request provisioning.Acces
 	subscribeChannelsList := make([]interface{}, 0)
 	clientInformationList := make([]interface{}, 0)
 	webhookInformationList := make([]interface{}, 0)
+	connectionEndpointsList := make([]interface{}, 0)
 	vpnName := ""
 
 	//by convention only one environment allowed
@@ -260,22 +253,20 @@ func (c *ConnectorProvisioner) AccessRequestProvision(request provisioning.Acces
 			}
 		}
 	}
-	flagFoundVpn := false
 	if appResponse.Environments != nil {
 		for _, env := range *appResponse.Environments {
 			if env.MessagingProtocols != nil {
 				for _, endpoint := range *env.MessagingProtocols {
 					if endpoint.MsgVpn != nil {
 						vpnName = fmt.Sprint(*endpoint.MsgVpn)
-						flagFoundVpn = true
 					}
-					if flagFoundVpn {
-						continue
-					}
+					connectionEndpoint := make(map[string]interface{})
+					pName := endpoint.Protocol.Name
+					pVersion := string(*endpoint.Protocol.Version)
+					pMsgVpn := *endpoint.MsgVpn
+					connectionEndpoint["endpoint"] = fmt.Sprintf("Protocol: %s (%s) Uri: %s MessageVpn: %s", pName, pVersion, *endpoint.Uri, pMsgVpn)
+					connectionEndpointsList = append(connectionEndpointsList, connectionEndpoint)
 				}
-			}
-			if flagFoundVpn {
-				continue
 			}
 		}
 	}
@@ -301,10 +292,11 @@ func (c *ConnectorProvisioner) AccessRequestProvision(request provisioning.Acces
 	accessDataRoot["subscribePermissions"] = subscribeChannelsList
 	accessDataRoot["clientinformation"] = clientInformationList
 	accessDataRoot["webhookinformation"] = webhookInformationList
+	accessDataRoot["connectionEndpoints"] = connectionEndpointsList
 	accessDataRoot["vpnName"] = vpnName
 
 	accessData := provisioning.NewAccessDataBuilder().SetData(accessDataRoot)
-	c.LogTraceLevelFiner("[Provisioner] [AccessRequestProvision]  successfully provisioned ApplicationName: %s  Product-Id: %s", appName, externalApiId)
+	c.LogTraceLevelFiner(fmt.Sprintf("[Provisioner] [AccessProvisioningRequest]  Team: %s AppName: %s ExternalApiId=ProductId: %s - provisioned app", teamName, appName, externalApiId))
 	return provisioning.NewRequestStatusBuilder().SetMessage("provisioned").Success(), accessData
 }
 
@@ -314,19 +306,18 @@ func (c *ConnectorProvisioner) AccessRequestDeprovision(request provisioning.Acc
 	//correlates to product-id in connector
 	externalApiId := fmt.Sprint(details["externalAPIID"])
 	appName := request.GetApplicationName()
-	c.LogTraceLevelFine("[Provisioner] [AccessRequestDeprovision]  ApplicationName: %s ProductId:%s", appName, externalApiId)
+	c.LogTraceLevelFine("[Provisioner] [AccessDeprovisioningRequest]  ApplicationName: %s ProductId:%s", appName, externalApiId)
 
 	err := c.OrgConnector.RemoveApiProductFromApp(c.DefaultOrgName, teamName, appName, externalApiId)
 	if err != nil {
-		log.Errorf("[Provisioner] [AccessRequestDeprovision] TeamName:%s ApplicationName:%s ExternalApiId=ProductId:%s %w", teamName, appName, externalApiId, err)
+		log.Errorf("[Provisioner] [AccessDeprovisioningRequest] Team: %s AppName: %s ExternalApiId=ProductId: %s - can not remove apiProduct from app %w", teamName, appName, externalApiId, err)
 		return provisioning.NewRequestStatusBuilder().SetMessage("deprovisioning failed").Failed()
 	}
-	c.LogTraceLevelFiner("[Provisioner] [AccessRequestDeprovision]  successfully deprovisioned ApplicationName: %s ProductId:%s", appName, externalApiId)
+	c.LogTraceLevelFiner(fmt.Sprintf("[Provisioner] [AccessDeprovisioningRequest] Team: %s AppName: %s ExternalApiId=ProductId: %s - removed apiProduct from app", teamName, appName, externalApiId))
 	return provisioning.NewRequestStatusBuilder().SetMessage("ok").Success()
 }
 
 func (c *ConnectorProvisioner) CredentialProvision(request provisioning.CredentialRequest) (provisioning.RequestStatus, provisioning.Credential) {
-	c.LogTraceLevelFine("[Provisioner] [CredentialProvision]  ApplicationName: %s", request.GetApplicationName())
 	appName := request.GetApplicationName()
 	credId := request.GetID()
 
@@ -334,7 +325,7 @@ func (c *ConnectorProvisioner) CredentialProvision(request provisioning.Credenti
 	//creating a new secret - can not distinguish between the very first CredentialProvision call triggered during first subscription and triggering of creating new credentials
 	username, password, err := c.OrgConnector.CreateNewSecret(c.DefaultOrgName, teamName, appName, credId)
 	if err != nil {
-		log.Errorf("[Provisioner] [CredentialProvision] GetAppCredentials TeamName:%s ApplicationName:%s %w", teamName, appName, err)
+		log.Errorf("[Provisioner] [CredentialProvisioningRequest] Team: %s AppName: %s CredentialsId:%s - failed to create credentials", teamName, appName, credId, err)
 		credentialDataContent := make(map[string]interface{})
 		credentialData := provisioning.NewCredentialBuilder().SetCredential(credentialDataContent)
 		return provisioning.NewRequestStatusBuilder().SetMessage("failed retrieving credentials").Failed(), credentialData
@@ -344,19 +335,19 @@ func (c *ConnectorProvisioner) CredentialProvision(request provisioning.Credenti
 	credentialDataContent["username"] = username
 	credentialDataContent["password"] = password
 	credentialData := provisioning.NewCredentialBuilder().SetCredential(credentialDataContent)
-	c.LogTraceLevelFiner("[Provisioner] [CredentialProvision]  successfully provisioned credentials for ApplicationName: %s", request.GetApplicationName())
+	c.LogTraceLevelFiner(fmt.Sprintf("[Provisioner] [CredentialProvisioningRequest] Team: %s AppName: %s CredentialsId:%s - created credentials ", teamName, appName, credId))
 	return provisioning.NewRequestStatusBuilder().SetMessage("ok").Success(), credentialData
 }
 
 func (c *ConnectorProvisioner) CredentialDeprovision(request provisioning.CredentialRequest) provisioning.RequestStatus {
-	c.LogTraceLevelFine("[Provisioner] [CredentialDeprovision]  ApplicationName: %s", request.GetApplicationName())
 	appName := request.GetApplicationName()
 	teamName := c.AgentBusinessGroupId
 	credId := request.GetID()
 	err := c.OrgConnector.DeleteAndCleanAppCredentials(c.DefaultOrgName, teamName, appName, &credId)
 	if err != nil {
-		log.Errorf("CredentialProvision [CredentialDeprovision] failed to remove credentials %w", err)
+		log.Errorf("[Provisioner] [CredentialDeprovisionRequest] Team: %s AppName: %s CredentialsId:%s - failed to remove credentials %w", teamName, appName, credId, err)
 		return provisioning.NewRequestStatusBuilder().SetMessage("failed to remove credentials").Failed()
 	}
+	c.LogTraceLevelFiner(fmt.Sprintf("[Provisioner] [CredentialDeprovisionRequest] Team: %s AppName: %s CredentialsId:%s - removed credentials", teamName, appName, credId))
 	return provisioning.NewRequestStatusBuilder().SetMessage("ok").Success()
 }
