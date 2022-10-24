@@ -292,7 +292,22 @@ func (a *ConnectorMiddleware) PublishSchemas() error {
 						SetName("permission").
 						SetLabel("Permission").
 						SetDescription("Permission").
-						IsString()))))
+						IsString())))).
+		AddProperty(provisioning.NewSchemaPropertyBuilder().
+			SetName("connectionEndpoints").
+			SetLabel("Endpoints").
+			SetDescription("Endpoints to connect to").
+			IsArray().
+			AddItem(provisioning.NewSchemaPropertyBuilder().
+				SetName("connectionEndpoint").
+				SetLabel("Endpoint").
+				SetDescription("Endpoint").
+				IsObject().
+				AddProperty(provisioning.NewSchemaPropertyBuilder().
+					SetName("endpoint").
+					SetLabel("Protocol").
+					SetDescription("Protocol name").
+					IsString())))
 
 	_, err := agent.NewAccessRequestBuilder().
 		SetName("solace-webhook-access-request").
@@ -419,12 +434,12 @@ func (a *ConnectorMiddleware) ProvisionApis() error {
 		}
 	}
 	if countFailed > 0 {
-		log.Warnf("[Middleware] [ProvisionApis] [done with errors] polling Solace Connector for AsyncApi Products. Amplify Services #(created:%d updated %d failed %d)", countCreated, countUpdated, countFailed)
+		log.Warnf("[Middleware] [ProvisionApis] [done with errors] polling Solace Connector for AsyncApi Products. Amplify Services #(created:%d updated:%d failed:%d)", countCreated, countUpdated, countFailed)
 	} else {
 		if countUpdated > 0 || countCreated > 0 {
-			log.Infof("[Middleware] [ProvisionApis] [done] polling Solace Connector for AsyncApi Products. Amplify Services #(created:%d updated %d failed %d)", countCreated, countUpdated, countFailed)
+			log.Infof("[Middleware] [ProvisionApis] [done] polling Solace Connector for AsyncApi Products. Amplify Services #(created:%d updated:%d failed:%d)", countCreated, countUpdated, countFailed)
 		} else {
-			a.LogTraceLevelFine(fmt.Sprintf("[Middleware] [ProvisionApis] [done] polling Solace Connector for AsyncApi Products. Amplify Services #(created:%d updated %d failed %d)", countCreated, countUpdated, countFailed))
+			a.LogTraceLevelFine(fmt.Sprintf("[Middleware] [ProvisionApis] [done] polling Solace Connector for AsyncApi Products. Amplify Services #(created:%d updated:%d failed:%d)", countCreated, countUpdated, countFailed))
 		}
 	}
 
