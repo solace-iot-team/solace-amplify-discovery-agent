@@ -1,5 +1,15 @@
 # Release Notes
 
+## Version 0.2.3
+
+### Features
+
+* no new features
+* 
+### Fixes
+
+* log levels adjusted
+
 ## Version 0.2.2
 
 ### Features

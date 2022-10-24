@@ -105,7 +105,7 @@ func (a *ConnectorMiddleware) PrepareConnectorForAgent() error {
 		return fmt.Errorf("PrepareConnectorForAgent checked team exists %w", err)
 	}
 	if teamExists {
-		log.Tracef("[Middleware] [PrepareConnectorForAgent] Checked Team (TeamId:%s) exists in Connector", a.ConnectorConfig.AgentBusinesssGroupId)
+		a.LogTraceLevelFine(fmt.Sprintf("[Middleware] [PrepareConnectorForAgent] Checked Team (TeamId:%s) exists in Connector", a.ConnectorConfig.AgentBusinesssGroupId))
 		return nil
 	}
 	err = a.OrgConnector.CreateTeam(a.DefaultOrgName, a.ConnectorConfig.AgentBusinesssGroupId, a.ConnectorConfig.AgentBusinesssGroupId)
@@ -337,7 +337,7 @@ func (a *ConnectorMiddleware) PublishSchemas() error {
 	if err != nil {
 		return fmt.Errorf("register solace-credentials-request %w", err)
 	}
-	log.Tracef("[Middleware] registered solace-credentials-request")
+	a.LogTraceLevelFine("[Middleware] registered solace-credentials-request")
 	return nil
 }
 
