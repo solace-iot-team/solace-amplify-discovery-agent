@@ -2,8 +2,9 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/solace-iot-team/solace-amplify-discovery-agent/pkg/connector"
 	"strings"
+
+	"github.com/solace-iot-team/solace-amplify-discovery-agent/pkg/connector"
 )
 
 const ATTRIBUTE_CON_META_APIPRODUCT_AXDEPLOYMENT = "_AX_APIPRODUCT_AXDEPLOYMENT"
@@ -31,14 +32,14 @@ type AxwayDeployment struct {
 
 // MapToApiId - creates Axway Serviceid `{apiProductName}`
 func MapToExternalApiId(apiProductName string) string {
-	return fmt.Sprintf("%s", apiProductName)
+	return apiProductName
 }
 
 // MapToApiId - creates Axway ApiName `{apiProductDisplayName}-{apoiProductId}` and replaces all underscores with dashes
 func MapToNormalizedAxApiName(apiProductId, apiProductDisplayName string) string {
 	//normalizedApiProductId := strings.ToLower(strings.ReplaceAll(apiProductId, "_", "-"))
 	normalizedApiProductDisplayName := strings.ToLower(strings.ReplaceAll(apiProductDisplayName, "_", "-"))
-	return fmt.Sprintf("%s", normalizedApiProductDisplayName)
+	return normalizedApiProductDisplayName
 }
 
 func MapToAxTagSolaceApiProduct(apiProductDisplayName string) string {
