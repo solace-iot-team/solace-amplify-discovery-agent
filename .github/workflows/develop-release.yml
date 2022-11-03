@@ -2,9 +2,9 @@ name: develop-release
 on:
   # deployment to internal ghcr repo only manually triggered
   workflow_dispatch:
-  push:
-    branches:
-      - develop
+  #push:
+  #  branches:
+  #    - develop
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: solace-iot-team/solace-amplify-discovery-agent

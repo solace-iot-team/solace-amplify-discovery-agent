@@ -339,6 +339,7 @@ func (c *ConnectorProvisioner) CredentialDeprovision(request provisioning.Creden
 	appName := request.GetApplicationName()
 	teamName := c.AgentBusinessGroupId
 	credId := request.GetID()
+
 	err := c.OrgConnector.DeleteAndCleanAppCredentials(c.DefaultOrgName, teamName, appName, &credId)
 	if err != nil {
 		log.Errorf("[Provisioner] [CredentialDeprovisionRequest] Team: %s AppName: %s CredentialsId:%s - failed to remove credentials %w", teamName, appName, credId, err)
@@ -346,4 +347,25 @@ func (c *ConnectorProvisioner) CredentialDeprovision(request provisioning.Creden
 	}
 	c.LogTraceLevelFiner(fmt.Sprintf("[Provisioner] [CredentialDeprovisionRequest] Team: %s AppName: %s CredentialsId:%s - removed credentials", teamName, appName, credId))
 	return provisioning.NewRequestStatusBuilder().SetMessage("ok").Success()
+}
+
+func (c *ConnectorProvisioner) CredentialUpdate(request provisioning.CredentialRequest) (provisioning.RequestStatus, provisioning.Credential) {
+	appName := request.GetApplicationName()
+	credId := request.GetID()
+
+	teamName := c.AgentBusinessGroupId
+	username, password, err := c.OrgConnector.UpdateSecret(c.DefaultOrgName, teamName, appName, credId)
+	if err != nil {
+		log.Errorf("[Provisioner] [CredentialUpdateRequest] Team: %s AppName: %s CredentialsId:%s - failed to update credentials", teamName, appName, credId, err)
+		credentialDataContent := make(map[string]interface{})
+		credentialData := provisioning.NewCredentialBuilder().SetCredential(credentialDataContent)
+		return provisioning.NewRequestStatusBuilder().SetMessage("failed retrieving credentials").Failed(), credentialData
+	}
+
+	credentialDataContent := make(map[string]interface{})
+	credentialDataContent["username"] = username
+	credentialDataContent["password"] = password
+	credentialData := provisioning.NewCredentialBuilder().SetCredential(credentialDataContent)
+	c.LogTraceLevelFiner(fmt.Sprintf("[Provisioner] [CredentialProvisioningRequest] Team: %s AppName: %s CredentialsId:%s - created credentials ", teamName, appName, credId))
+	return provisioning.NewRequestStatusBuilder().SetMessage("ok").Success(), credentialData
 }

@@ -129,24 +129,9 @@ func Initialize(connectorConfig ConnectorConfig, externalLogger ClientLogger) er
 	}
 
 	//register HealthChecker
-	hc.RegisterHealthcheck("Solace-Connector", "solace", connectors.OrgConnector.Healthcheck)
+	_, err = hc.RegisterHealthcheck("Solace-Connector", "solace", connectors.OrgConnector.Healthcheck)
 
-	return nil
-}
-
-// NewConnectorAdminClient - Creates a new Gateway Client
-func NewConnectorAdminClient(connectorConfig ConnectorConfig) (*ClientWithResponses, error) {
-	timeout := connectorTimeout
-	//TODO TLS Config
-	basicAuthProvider, basicAuthProviderErr := securityprovider.NewSecurityProviderBasicAuth(connectorConfig.ConnectorAdminUser, connectorConfig.ConnectorAdminPassword)
-	if basicAuthProviderErr != nil {
-		panic(basicAuthProviderErr)
-	}
-	myclient, err := NewClientWithResponses(connectorConfig.ConnectorURL, WithTLSConfig(connectorConfig.ConnectorInsecureSkipVerify, connectorConfig.ConnectorProxyURL, timeout), WithRequestEditorFn(basicAuthProvider.Intercept))
-	if err != nil {
-		return nil, err
-	}
-	return myclient, nil
+	return err
 }
 
 // NewConnectorOrgClient - Creates a new Gateway Client
@@ -167,20 +152,21 @@ func NewConnectorOrgClient(connectorConfig ConnectorConfig) (*ClientWithResponse
 func (c *Access) Healthcheck(name string) *hc.Status {
 	// Set a default response
 	s := hc.Status{
-		Result: hc.OK,
+		Details: fmt.Sprintf("Ok: %s", name),
+		Result:  hc.OK,
 	}
 	ok, _, err := c.About2()
 	if err != nil {
 		s = hc.Status{
 			Result:  hc.FAIL,
-			Details: err.Error(),
+			Details: fmt.Sprintf("Not ok: %s  %s", name, err),
 		}
 		return &s
 	}
 	if !ok {
 		s = hc.Status{
 			Result:  hc.FAIL,
-			Details: "Not successfull",
+			Details: fmt.Sprintf("Not successfull: %s", name),
 		}
 	}
 	return &s
@@ -347,7 +333,7 @@ func (c *Access) RemoveApiProductMetaAttributes(orgName string, apiProductName s
 			result, err := c.Client.DeleteApiProductMetaAttributeWithResponse(ctx, Organization(orgName), apiProductName, removeAttribute.Name)
 			//TODO compensation
 			if err != nil {
-				NewConnectorError("RemoveApiProductMetaAttributes:DeleteApiProductMetaAttributeWithResponse", err)
+				return NewConnectorError("RemoveApiProductMetaAttributes:DeleteApiProductMetaAttributeWithResponse", err)
 			}
 			if result.StatusCode() == 204 {
 				//nothing to do
@@ -380,7 +366,7 @@ func (c *Access) RemoveApiMetaAttributes(orgName string, apiName string, attribu
 			result, err := c.Client.DeleteApiMetaAttributeWithResponse(ctx, Organization(orgName), apiName, removeAttribute.Name)
 			//TODO compensation
 			if err != nil {
-				NewConnectorError("RemoveApiMetaAttributes:DeleteApiMetaAttributeWithResponse", err)
+				return NewConnectorError("RemoveApiMetaAttributes:DeleteApiMetaAttributeWithResponse", err)
 			}
 			if result.StatusCode() == 204 {
 				//nothing to do
@@ -426,7 +412,7 @@ func (c *Access) UpsertApiMetaAttributes(orgName string, apiName string, attribu
 			)
 			//TODO compensation
 			if err != nil {
-				NewConnectorError("UpsertApiProductMetaAttributes:CreateApiMetaAttributeWithBodyWithResponse", err)
+				return NewConnectorError("UpsertApiProductMetaAttributes:CreateApiMetaAttributeWithBodyWithResponse", err)
 			}
 			if result.StatusCode() == 200 {
 				//nothing to do
@@ -447,7 +433,7 @@ func (c *Access) UpsertApiMetaAttributes(orgName string, apiName string, attribu
 				bodyReader)
 			//TODO compensation
 			if err != nil {
-				NewConnectorError("UpsertApiProductMetaAttributes:UpdateApiMetaAttributeWithBodyWithResponse", err)
+				return NewConnectorError("UpsertApiProductMetaAttributes:UpdateApiMetaAttributeWithBodyWithResponse", err)
 			}
 			if result.StatusCode() == 200 {
 				//nothing to do
@@ -503,7 +489,7 @@ func (c *Access) UpsertApiProductMetaAttributes(orgName string, apiProductName s
 			)
 			//TODO compensation
 			if err != nil {
-				NewConnectorError("UpsertApiProductMetaAttributes:CreateApiMetaAttributeWithBodyWithResponse", err)
+				return NewConnectorError("UpsertApiProductMetaAttributes:CreateApiMetaAttributeWithBodyWithResponse", err)
 			}
 			if result.StatusCode() == 200 {
 				//nothing to do
@@ -523,7 +509,7 @@ func (c *Access) UpsertApiProductMetaAttributes(orgName string, apiProductName s
 				bodyReader)
 			//TODO compensation
 			if err != nil {
-				NewConnectorError("UpsertApiProductMetaAttributes:UpdateApiMetaAttributeWithBodyWithResponse", err)
+				return NewConnectorError("UpsertApiProductMetaAttributes:UpdateApiMetaAttributeWithBodyWithResponse", err)
 			}
 			if result.StatusCode() == 200 {
 				//nothing to do
@@ -929,6 +915,61 @@ func (c *Access) DeleteAndCleanAppCredentials(orgName string, teamName string, a
 	return nil
 }
 
+func (c *Access) GetAppCredential(orgName string, teamName string, appName string, credentialName string) (*Credentials, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), connectorTimeout)
+	defer cancel()
+	params := GetTeamAppParams{}
+	result, err := c.Client.GetTeamAppWithResponse(ctx, orgName, teamName, appName, &params)
+	if err != nil {
+		return nil, NewConnectorError("GetTeamAppWithResponse", err)
+	}
+	if result.StatusCode() == 404 {
+		//app missing - credential does not exist anymore
+		log.Warnf("[conclieng] [GetAppCredential] TeamApp (%s) in team (%s) does not exist anymore", appName, teamName)
+		return nil, NewConnectorHttpError("GetTeamAppWithResponse", 404)
+	}
+	if result.StatusCode() > 299 {
+		return nil, NewConnectorHttpAllError("GetTeamAppWithResponse", result.StatusCode(), result.Body)
+	}
+	//check is it a single credential
+	singleCredential, castOk := result.JSON200.Credentials.(map[string]interface{})
+	if castOk {
+		singleCredentialRawBytes, err := json.Marshal(singleCredential)
+		if err != nil {
+			return nil, NewConnectorError("GetAppCredential - marshalling of credential", err)
+		}
+		singleCredential := Credentials{}
+		err = json.Unmarshal(singleCredentialRawBytes, &singleCredential)
+		if err != nil {
+			return nil, NewConnectorError("GetAppCredential - unmarshalling credential", err)
+		}
+		if *singleCredential.Name == credentialName {
+			return &singleCredential, nil
+		}
+		return nil, nil
+	}
+
+	arrayCredentials, castOk := result.JSON200.Credentials.([]interface{})
+	if !castOk {
+		return nil, NewConnectorError("GetAppCredential - could not cast to array of credentials", fmt.Errorf("app credentials not an array of credentials"))
+	}
+	credentialsRawBytes, err := json.Marshal(arrayCredentials)
+	if err != nil {
+		return nil, NewConnectorError("GetAppCredential - marshalling array of credentials", err)
+	}
+	credentials := make([]Credentials, 0)
+	err = json.Unmarshal(credentialsRawBytes, &credentials)
+	if err != nil {
+		return nil, NewConnectorError("GetAppCredential - unmarshalling array of credentials", err)
+	}
+	for _, credentialCandidate := range credentials {
+		if *credentialCandidate.Name == credentialName {
+			return &credentialCandidate, nil
+		}
+	}
+	return nil, nil
+}
+
 func (c *Access) deleteAppCredential(orgName string, teamName string, appName string, consumerKey string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), connectorTimeout)
 	defer cancel()
@@ -959,5 +1000,35 @@ func (c *Access) CreateNewSecret(orgName string, teamName string, appName string
 		return "", "", NewConnectorHttpAllError("CreateTeamAppCredentialsWithResponse", result.StatusCode(), result.Body)
 	}
 	return result.JSON201.Secret.ConsumerKey, *result.JSON201.Secret.ConsumerSecret, nil
+
+}
+
+func (c *Access) UpdateSecret(orgName string, teamName string, appName string, credentialName string) (string, string, error) {
+	origCredential, err := c.GetAppCredential(orgName, teamName, appName, credentialName)
+	if err != nil {
+		return "", "", NewConnectorError("UpdateSecret GetAppCredential", err)
+	}
+	if origCredential == nil {
+		return "", "", fmt.Errorf("credential or app not found")
+	}
+	newSecret := Secret{
+		ConsumerKey: origCredential.Secret.ConsumerKey,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), connectorTimeout)
+	defer cancel()
+	params := UpdateTeamAppCredentialsParams{}
+	payload := UpdateTeamAppCredentialsJSONBody{
+		Name:   &credentialName,
+		Secret: &newSecret,
+	}
+	consumerKey := ConsumerKey(origCredential.Secret.ConsumerKey)
+	result, err := c.Client.UpdateTeamAppCredentialsWithResponse(ctx, orgName, teamName, appName, consumerKey, &params, payload)
+	if err != nil {
+		return "", "", NewConnectorError("UpdateTeamAppCredentialsWithResponse", err)
+	}
+	if result.StatusCode() > 299 {
+		return "", "", NewConnectorHttpAllError("UpdateTeamAppCredentialsWithResponse", result.StatusCode(), result.Body)
+	}
+	return result.JSON200.Secret.ConsumerKey, *result.JSON200.Secret.ConsumerSecret, nil
 
 }
