@@ -2,12 +2,13 @@ package middleware
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
+
 	"github.com/Axway/agent-sdk/pkg/apic/provisioning"
 	"github.com/Axway/agent-sdk/pkg/util/log"
 	"github.com/solace-iot-team/solace-amplify-discovery-agent/pkg/config"
 	"github.com/solace-iot-team/solace-amplify-discovery-agent/pkg/connector"
-	"net/url"
-	"strings"
 )
 
 type ConnectorProvisioner struct {
@@ -31,7 +32,7 @@ func NewConnectorProvisioner(connectorConfig *config.ConnectorConfig) (*Connecto
 }
 func (a *ConnectorProvisioner) LogTraceLevelFine(format string, args ...interface{}) {
 	if a.ConnectorConfig.ConnectorTraceLevel >= config.CONNECTOR_TRACELEVEL_FINE {
-		if args != nil && len(args) > 0 {
+		if len(args) > 0 {
 			log.Tracef(format, args)
 		} else {
 			log.Tracef(format)
@@ -41,7 +42,7 @@ func (a *ConnectorProvisioner) LogTraceLevelFine(format string, args ...interfac
 
 func (a *ConnectorProvisioner) LogTraceLevelFiner(format string, args ...interface{}) {
 	if a.ConnectorConfig.ConnectorTraceLevel >= config.CONNECTOR_TRACELEVEL_FINER {
-		if args != nil && len(args) > 0 {
+		if len(args) > 0 {
 			log.Tracef(format, args)
 		} else {
 			log.Tracef(format)
@@ -51,7 +52,7 @@ func (a *ConnectorProvisioner) LogTraceLevelFiner(format string, args ...interfa
 
 func (a *ConnectorProvisioner) LogTraceLevelFinest(format string, args ...interface{}) {
 	if a.ConnectorConfig.ConnectorTraceLevel >= config.CONNECTOR_TRACELEVEL_FINEST {
-		if args != nil && len(args) > 0 {
+		if len(args) > 0 {
 			log.Tracef(format, args)
 		} else {
 			log.Tracef(format)
@@ -89,7 +90,7 @@ func (c *ConnectorProvisioner) AccessRequestProvision(request provisioning.Acces
 	externalApiId := fmt.Sprint(details["externalAPIID"])
 	appName := request.GetApplicationName()
 
-	webhookValidationFeedback := ""
+	webhookValidationFeedback := make([]string, 0)
 	var webhook *connector.WebHook = nil
 	//webhook configured?
 	if request.GetAccessRequestData() != nil {
@@ -113,20 +114,25 @@ func (c *ConnectorProvisioner) AccessRequestProvision(request provisioning.Acces
 					//validate
 					parsedUrl, err := url.Parse(uriText)
 					if err != nil {
-						webhookValidationFeedback = "Webhook URL is not a valid URL"
+						webhookValidationFeedback = append(webhookValidationFeedback, "Webhook URL is not a valid URL")
 
 					} else {
 						if !(strings.ToLower(parsedUrl.Scheme) == "http" || strings.ToLower(parsedUrl.Scheme) == "https") {
-							webhookValidationFeedback = "Webhook URL must be HTTP or HTTPS"
+							webhookValidationFeedback = append(webhookValidationFeedback, "Webhook URL must be HTTP or HTTPS")
 						}
 					}
 					if authmodeText != "none" {
 						if authnameText == "" {
-							webhookValidationFeedback = webhookValidationFeedback + " username/header-name missing"
+							webhookValidationFeedback = append(webhookValidationFeedback, "username/header-name missing")
 						}
 						if authsecretText == "" {
-							webhookValidationFeedback = webhookValidationFeedback + " password/header-value missing"
+							webhookValidationFeedback = append(webhookValidationFeedback, "password/header-value missing")
 						}
+					}
+
+					if len(webhookValidationFeedback) > 0 {
+						log.Errorf("[Provisioner] [AccessProvisioningRequest] TeamName: %s ApplicationName: %s ExternalApiId=ProductId: %s - %s", teamName, appName, externalApiId, strings.Join(webhookValidationFeedback[:], ","))
+						return provisioning.NewRequestStatusBuilder().SetMessage("validation failed").Failed(), nil
 					}
 
 					var whauth connector.WebHookAuth = nil
@@ -216,26 +222,16 @@ func (c *ConnectorProvisioner) AccessRequestProvision(request provisioning.Acces
 	for _, perm := range *env.Permissions.Publish {
 		for channelName, channelPermission := range perm {
 			publishChannel := make(map[string]interface{})
-			publishChannelTopics := make([]string, 0)
-
-			for _, channelPermissionTopic := range channelPermission.Permissions {
-				publishChannelTopics = append(publishChannelTopics, channelPermissionTopic)
-			}
 			publishChannel["channelName"] = channelName
-			publishChannel["channelPermissions"] = publishChannelTopics
+			publishChannel["channelPermissions"] = channelPermission.Permissions
 			publishChannelsList = append(publishChannelsList, publishChannel)
 		}
 	}
 	for _, perm := range *env.Permissions.Subscribe {
 		for channelName, channelPermission := range perm {
 			subscribeChannel := make(map[string]interface{})
-			subscribeChannelTopics := make([]string, 0)
-
-			for _, channelPermissionTopic := range channelPermission.Permissions {
-				subscribeChannelTopics = append(subscribeChannelTopics, channelPermissionTopic)
-			}
 			subscribeChannel["channelName"] = channelName
-			subscribeChannel["channelPermissions"] = subscribeChannelTopics
+			subscribeChannel["channelPermissions"] = channelPermission.Permissions
 			subscribeChannelsList = append(subscribeChannelsList, subscribeChannel)
 		}
 	}

@@ -45,3 +45,5 @@ pkg/config/path
 
 gh-pages
 /docs/.python-version
+
+solace_amplify_discovery_agent.*

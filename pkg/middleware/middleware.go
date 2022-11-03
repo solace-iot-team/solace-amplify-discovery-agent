@@ -3,6 +3,11 @@ package middleware
 import (
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/url"
+	"strconv"
+	"time"
+
 	"github.com/Axway/agent-sdk/pkg/agent"
 	"github.com/Axway/agent-sdk/pkg/apic"
 	"github.com/Axway/agent-sdk/pkg/apic/provisioning"
@@ -10,10 +15,6 @@ import (
 	"github.com/Axway/agent-sdk/pkg/util/log"
 	"github.com/solace-iot-team/solace-amplify-discovery-agent/pkg/config"
 	"github.com/solace-iot-team/solace-amplify-discovery-agent/pkg/connector"
-	"net"
-	"net/url"
-	"strconv"
-	"time"
 )
 
 type DiscoverAysyncApisJob struct {
@@ -426,7 +427,7 @@ func (a *ConnectorMiddleware) ProvisionApis() error {
 			err = a.publishNewApiProduct(&apiProduct)
 			if err != nil {
 				countFailed++
-				a.LogTraceLevelFiner(fmt.Sprintf("[Middleware] [ProvisionApis] provisioning ApiProduct %s (%s, %s) in Amplify as Service failed (%w) ", apiProduct.Name, apiProduct.DisplayName, apiProductVersion, err))
+				a.LogTraceLevelFiner(fmt.Sprintf("[Middleware] [ProvisionApis] provisioning ApiProduct %s (%s, %s) in Amplify as Service failed (%s) ", apiProduct.Name, apiProduct.DisplayName, apiProductVersion, err.Error()))
 			} else {
 				a.LogTraceLevelFiner(fmt.Sprintf("[Middleware] [ProvisionApis] [ok] ApiProduct %s (%s, %s) provisioned in Amplify ", apiProduct.Name, apiProduct.DisplayName, apiProductVersion))
 				countCreated++
@@ -460,7 +461,7 @@ func (a *ConnectorMiddleware) publishUpdatedApiProduct(apiProduct *connector.API
 	axDeploymentInfo := AxwayDeployment{}
 	updatedDeploymentInfo := AxwayDeployment{}
 	err = json.Unmarshal([]byte(content), &axDeploymentInfo)
-	err = json.Unmarshal([]byte(content), &updatedDeploymentInfo)
+	json.Unmarshal([]byte(content), &updatedDeploymentInfo)
 	//assumption either both or non will return an error
 	if err != nil {
 		return false, fmt.Errorf("ApiProduct %s).Meta.Attributes is not compliant with AxDeployment data structure", apiProduct.Name)
@@ -473,7 +474,7 @@ func (a *ConnectorMiddleware) publishUpdatedApiProduct(apiProduct *connector.API
 	}
 
 	//by convention only one api in an api-product
-	for apiName, _ := range container.ApiDetailsMap {
+	for apiName := range container.ApiDetailsMap {
 		serviceBody, err := a.publishApiServiceRevision(apiName, container)
 		if err != nil {
 			//todo add compensation for already published apis
@@ -514,7 +515,7 @@ func (a *ConnectorMiddleware) publishNewApiProduct(apiProduct *connector.APIProd
 	}
 
 	//by convention only one Api
-	for apiName, _ := range container.ApiDetailsMap {
+	for apiName := range container.ApiDetailsMap {
 		serviceBody, err := a.publishApiServiceRevision(apiName, container)
 		if err != nil {
 			//todo add compensation for already published apis
@@ -562,13 +563,14 @@ func (a *ConnectorMiddleware) publishApiServiceRevision(apiName string, containe
 	return serviceBody, nil
 }
 
-func checkAttribute(key string, value string, attributes map[string]string) bool {
-	candidateValue, ok := attributes[key]
-	if ok {
-		return candidateValue == value
-	}
-	return false
-}
+// NOTE: currently not used
+// func checkAttribute(key string, value string, attributes map[string]string) bool {
+// 	candidateValue, ok := attributes[key]
+// 	if ok {
+// 		return candidateValue == value
+// 	}
+// 	return false
+// }
 
 // buildServiceBody - creates the service definition
 func (a *ConnectorMiddleware) buildServiceBodyFromApiProduct(apiEnvs []*connector.EnvironmentResponse, apiProduct *connector.APIProduct, apiInfo *connector.APIInfo, apiSpec *[]byte) (*apic.ServiceBody, error) {
@@ -659,17 +661,20 @@ func (a *ConnectorMiddleware) buildAxwayEndpoints(apiProduct *connector.APIProdu
 			foundMessagingProtocolInApiProduct, _ := apiProduct.FindProtocolByName(string(messagingProtocol.Protocol.Name))
 			if foundMessagingProtocolInApiProduct {
 				uri, err := url.Parse(*messagingProtocol.Uri)
+				if err != nil {
+					return nil, fmt.Errorf("building AxwayEndpoints URL parsing of messaging endpoint: %w", err)
+				}
 				host, _, err := net.SplitHostPort(uri.Host)
 				if err != nil {
-					return nil, fmt.Errorf("Building AxwayEndpoints URL parsing of messaging endpoint: %w", err)
+					return nil, fmt.Errorf("building AxwayEndpoints Host parsing of messaging endpoint: %w", err)
 				}
 				port, err := strconv.Atoi(uri.Port())
 				if err != nil {
-					return nil, fmt.Errorf("Building AxwayEndpoints Port parsing of messaging endpoint: %w", err)
+					return nil, fmt.Errorf("building AxwayEndpoints Port parsing of messaging endpoint: %w", err)
 				}
 				axwayProtocol, err := connector.MapConnectorToAxwayProtocol(string(messagingProtocol.Protocol.Name))
 				if err != nil {
-					return nil, fmt.Errorf("Building AxwayEndpoints Protocol mapping: %w", err)
+					return nil, fmt.Errorf("building AxwayEndpoints Protocol mapping: %w", err)
 				}
 				endpointDefinition := apic.EndpointDefinition{
 					Host:     host,

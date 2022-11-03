@@ -1,11 +1,21 @@
 # Release Notes
 
+## Version 0.2.4
+
+### Features
+
+* no new features
+
+### Fixes
+
+* Webhook validation feedback adjusted
+
 ## Version 0.2.3
 
 ### Features
 
 * no new features
-* 
+ 
 ### Fixes
 
 * log levels adjusted
