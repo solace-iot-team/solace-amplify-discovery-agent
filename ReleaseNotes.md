@@ -1,5 +1,15 @@
 # Release Notes
 
+## Version 0.2.5
+
+### Features
+
+* public and private key can now be provided as base64 encoded environment variable
+
+### Fixes
+
+* Webhook validation feedback adjusted
+* 
 ## Version 0.2.4
 
 ### Features

@@ -29,6 +29,7 @@ central:
       #            can get used to bootstrap and share PEM via environment variable
       # use awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' cert-name.pem  to transform PEM file
       # data: "-----BEGIN PRIVATE KEY----- ..."
+      # datab64: "BASE64-Encoded Private Key" (works best with environment variables provided through config files etc.)
     # Path and Filename of Amplify Central Service Account public key as PEM
     publicKey: "/path/to/public_key.pem"
       # Optional - PEM content as one line PEM
@@ -36,7 +37,7 @@ central:
       #            can get used to bootstrap and share PEM via environment variable
       # use awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' cert-name.pem  to transform PEM file
       # data: "-----BEGIN PUBLIC KEY----- ..."
-
+      # datab64: "BASE64-Encoded Public Key" (works best with environment variables provided through config files etc.)
 # Solace Connector specific configurations
 connector:
   # Solace Connector endpoint
